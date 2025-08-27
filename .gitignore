@@ -1,0 +1,16 @@
+*.lock
+*.pyc
+**/mlruns/
+*.jpg
+*.jpeg
+*.png
+*.gif
+**/Models/
+**/Models2/
+*.bin
+*.db
+*.json
+*.npy
+*.csv
+*.log
+hfo_spectral_detector.log
