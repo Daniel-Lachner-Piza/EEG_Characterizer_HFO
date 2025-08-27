@@ -1,5 +1,31 @@
 # ARC
 
+# 1.Create venv to run detector
+1.Install uv python from astral
+´´´sh
+mkdir ~/tmp
+cd ~/tmp
+curl -LsSf https://astral.sh/uv/install.sh | sh
+cd ~
+´´´
+
+2.Copy repo to Projects folder
+´´´sh
+mkdir Projects
+wget ###
+´´´
+
+2.In Projects folder run the following:
+´´´sh
+uv sync
+´´´
+
+3.Activate the environment
+´´´sh
+source .venv/bin/activate
+´´´
+
+
 # Connect to ARC
 	ssh arc.ucalgary.ca 
 
@@ -55,6 +81,13 @@ while sleep 2; do arc.job-info 35038925; done
 
 # Data Transfer
 
+# Single files
+Open terminal in local computer
+Use secure copy to copy single file:
+´´´sh
+scp daniel.lachnerpiza@arc.ucalgary.ca:~/Projects/Scalp_HFO_Spectral_Detector/requirements.txt ~/Documents/
+´´´
+
 ## From local to remote
 ´´´sh
 	source_path="/mnt/c/Users/HFO/Documents/Postdoc_Calgary/Research/Characterized_Spectral_Blobs/1_Characterized_Objects_ACH_27_Multidetect_SOZ_Study/"
@@ -108,26 +141,6 @@ echo $(which python)
 
 ####### Run your script #########################
 python ~/Projects/Scalp_HFO_Spectral_Detector/run_main.py
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

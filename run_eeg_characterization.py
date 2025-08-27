@@ -9,10 +9,10 @@ import mne
 import numpy as np
 
 from pathlib import Path
-from hfo_spectral_detector.read_setup_eeg.montage_creator import MontageCreator
-from hfo_spectral_detector.elpi.elpi_interface import load_elpi_file, write_elpi_file
+#from hfo_spectral_detector.read_setup_eeg.montage_creator import MontageCreator
+#from hfo_spectral_detector.elpi.elpi_interface import load_elpi_file, write_elpi_file
 from hfo_spectral_detector.spectral_analyzer.characterize_events import characterize_events, collect_chann_spec_events
-from hfo_spectral_detector.studies_info.studies_info import StudiesInfo
+#from hfo_spectral_detector.studies_info.studies_info import StudiesInfo
 from hfo_spectral_detector.eeg_io.eeg_io import EEG_IO
 
 logger = logging.getLogger(__name__)
@@ -137,9 +137,9 @@ if __name__ == "__main__":
 
     else:
         dataset_name = args.name
-        data_path = args.inpath
+        data_path = Path(args.inpath)
         eeg_format = args.format
-        out_path = args.outpath
+        out_path = Path(args.outpath)
 
     print("socket.gethostname() = ", socket.gethostname())
     print(f"Number of CPUs: {os.cpu_count()}")

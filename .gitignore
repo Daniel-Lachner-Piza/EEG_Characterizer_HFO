@@ -14,3 +14,7 @@
 *.csv
 *.log
 hfo_spectral_detector.log
+
+
+# VENV
+.venv/
