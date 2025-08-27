@@ -22,9 +22,16 @@ uv sync
 
 3.Activate the environment
 ´´´sh
-source .venv/bin/activate
+. activate
 ´´´
 
+4. Run EEG characterization 
+´´´sh
+inpath=/work/jacobs_lab/PhysioEEG/
+oupath=/work/jacobs_lab/Test/Output/
+eegfmt=edf 
+python run_eeg_characterization.py --name FRA_Test --inpath $inpath --outpath $oupath --format $eegfmt
+´´´
 
 # Connect to ARC
 	ssh arc.ucalgary.ca 
