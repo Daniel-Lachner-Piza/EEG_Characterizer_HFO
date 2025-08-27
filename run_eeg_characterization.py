@@ -172,4 +172,4 @@ if __name__ == "__main__":
         logger.info(f"{fname}")
 
 
-    run_eeg_characterization(dataset_name, files_dict, out_path)
+    #run_eeg_characterization(dataset_name, files_dict, out_path)
