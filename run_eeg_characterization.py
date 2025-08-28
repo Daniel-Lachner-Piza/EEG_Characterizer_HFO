@@ -14,6 +14,7 @@ from pathlib import Path
 from hfo_spectral_detector.spectral_analyzer.characterize_events import characterize_events, collect_chann_spec_events
 #from hfo_spectral_detector.studies_info.studies_info import StudiesInfo
 from hfo_spectral_detector.eeg_io.eeg_io import EEG_IO
+from prediction.predict_characterize_hfo import HFO_Detector
 
 logger = logging.getLogger(__name__)
 
@@ -34,6 +35,19 @@ def run_eeg_characterization(dataset_name, files_dict, mtg_name, out_path ):
     logger.info(f"Output path = {str(out_path)}")
 
     os.makedirs(out_path, exist_ok=True)
+
+    # Create the detector object
+    eeg_files_ls = np.flip(files_dict['PatName'])
+    eeg_data_path = files_dict['Filepath'][0].parent
+    detector = HFO_Detector(eeg_type=eeg_format, 
+                            eeg_data_path=eeg_data_path, 
+                            eeg_filenames=eeg_files_ls, 
+                            characterized_data_path=out_path, 
+                            )
+    detector_results_path = out_path / 'Elpi_Detector_Results'   
+    os.makedirs(detector_results_path, exist_ok=True)
+    detector.load_models()
+    detector.auto_hfo_detection(detector_results_path)
 
     files_idxs = np.arange(len(files_dict['PatName']))
     #files_idxs = files_idxs[0:6]
