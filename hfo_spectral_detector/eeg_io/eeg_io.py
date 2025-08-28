@@ -303,7 +303,6 @@ class EEG_IO:
                 hw_group_a = ''.join([c for c in mtg_ch_a if not c.isdigit()])
                 hw_group_b = ''.join([c for c in mtg_ch_b if not c.isdigit()])
 
-                accepted_channs = ["c3", "c4", "cz"]
                 if (hw_group_a=="C" or hw_group_b=="C") or (hw_group_a=="DC" or hw_group_b=="DC"):
                     if (mtg_ch_a.lower() not in accepted_channs and mtg_ch_b.lower() not in accepted_channs):
                         print(f"Exclude channel {mtg_name}")

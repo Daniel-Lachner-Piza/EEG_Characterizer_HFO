@@ -196,3 +196,37 @@ https://uofc.sharepoint.com/sites/SPO-DEPT-Projects-IT/SCP%20%20Training%20Video
 	
 # Docker Container to Apptainer
 https://rcs.ucalgary.ca/How_to_convert_a_Docker_container_to_an_Apptainer_container 
+
+
+
+
+# TRansfer EEG files
+groups_ls=(
+	"HFOHealthy1monto2yrs" 
+	"HFOHealthy3to5yrs" 
+	"HFOHealthy6to10yrs" 
+	"HFOHealthy11to13yrs" 
+	"HFOHealthy14to17yrs"
+)
+
+for group in ${groups_ls[@]}
+do
+	echo $group
+	source_path="/mnt/c/Users/HFO/Documents/Postdoc_Calgary/Research/Tatsuya/PhysioEEGs/Anonymized_EDFs/${group}"
+	destination_path="daniel.lachnerpiza@arc.ucalgary.ca:/work/jacobs_lab/EEG_Data/AnonymPhysioEEGs/${group}"
+	file_type="*/*.edf"
+	echo ""
+	echo ""
+	echo "----------------------------------------------- Data Transfer Info -----------------------------------------------"
+	echo Source Path : $source_path
+	echo Destination Path : $destination_path
+	echo File Type : $file_type
+	echo "-------------------------------------------------------------------------------------------------------------------"
+	echo ""
+	echo ""
+	
+	rsync --partial --progress $source_path*$file_type $destination_path
+done
+
+
+# 
