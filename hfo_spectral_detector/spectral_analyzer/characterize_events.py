@@ -53,20 +53,20 @@ def scale_array(arr):
 
 def collect_chann_spec_events(pat_name: str, eeg_reader: EEG_IO, an_wdws_dict: dict, out_path:str=None, power_line_freqs:float=None, go_parallel:bool=True, force_recalc:bool=False, save_spect_img:bool=False):
 
-    logger.info(f"{pat_name}\collect_chann_spec_events")
-    print(f"{pat_name}\collect_chann_spec_events")
-    
-    all_ch_df_filepath = out_path + pat_name + "All_Ch_Objects.parquet"
+    logger.info(f"{pat_name}\ncollect_chann_spec_events")
+    print(f"{pat_name}\ncollect_chann_spec_events")
+
+    all_ch_df_filepath = out_path / f"{pat_name}All_Ch_Objects.parquet"
     if os.path.isfile(all_ch_df_filepath) and  not force_recalc:
         return
 
-    new_out_path = out_path + pat_name + os.sep
+    new_out_path = out_path / pat_name
     os.makedirs(new_out_path, exist_ok=True)
     mtg_labels = eeg_reader.ch_names
     ch_objs_ls = []
     for i, mtg in enumerate(mtg_labels):
 
-        ch_df_filepath = new_out_path + pat_name + "_" + str(mtg)+"_objects.parquet"
+        ch_df_filepath = new_out_path / f"{pat_name}_{mtg}_objects.parquet"
         ch_contours_df = pd.read_parquet(ch_df_filepath)
         if len(ch_contours_df)>0:
             ch_objs_ls.append(ch_contours_df)
@@ -86,10 +86,10 @@ def characterize_events(pat_name: str, eeg_reader: EEG_IO, an_wdws_dict: dict, o
     print(f"{pat_name}\nCharacterize Events")
     assert power_line_freqs is not None, "Power line frequency is not defined!"
 
-    new_out_path = out_path + pat_name + os.sep
+    new_out_path = out_path / pat_name
     os.makedirs(new_out_path, exist_ok=True)
 
-    all_ch_df_filepath = out_path + pat_name + "All_Ch_Objects.parquet"
+    all_ch_df_filepath = new_out_path / "All_Ch_Objects.parquet"
 
     if os.path.isfile(all_ch_df_filepath) and  not force_recalc:
         return
@@ -132,9 +132,9 @@ def channel_specific_characterization(pat_name: str, fs: float, screen_size:tupl
     logger.info(f"channel_specific_characterization:{mtg}")
     print(f"channel_specific_characterization:{mtg}")
 
-    new_out_path = out_path + os.sep + mtg + os.sep
+    new_out_path = out_path / mtg
     os.makedirs(new_out_path, exist_ok=True)
-    ch_df_filepath = out_path + pat_name + "_" + str(mtg)+"_objects.parquet"
+    ch_df_filepath = new_out_path / f"{pat_name}_{mtg}_objects.parquet"
     ch_contours_df = pd.DataFrame()
     if not os.path.isfile(ch_df_filepath) or force_recalc:
 
@@ -778,12 +778,12 @@ def hfo_spectro_bp_wdw_analysis(\
         temp_pat_name = pat_name[0:int(len(pat_name)/3)]
         #if tp_cnt>0 or fp_cnt>0 or fn_cnt > 0:
         if tp_cnt>0 or fn_cnt > 0 or bp_ok_present:
-            new_out_path = out_path + os.sep + 'TP_FP_FN' + os.sep
+            new_out_path = out_path / 'TP_FP_FN'
             os.makedirs(new_out_path, exist_ok=True)
-            plt.savefig(new_out_path+temp_pat_name+'--'+fig_title+'.png', bbox_inches='tight')
+            plt.savefig(new_out_path / f"{temp_pat_name}--{fig_title}.png", bbox_inches='tight')
         else:
             pass
-            # new_out_path = out_path + os.sep + 'TN' + os.sep
+            # new_out_path = out_path / 'TN'
             # os.makedirs(new_out_path, exist_ok=True)
             # plt.savefig(new_out_path+fig_title+'.png', bbox_inches='tight')
 

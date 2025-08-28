@@ -17,7 +17,7 @@ from hfo_spectral_detector.eeg_io.eeg_io import EEG_IO
 
 logger = logging.getLogger(__name__)
 
-def run_eeg_characterization(dataset_name, files_dict, out_path ):
+def run_eeg_characterization(dataset_name, files_dict, mtg_name, out_path ):
     
     logging.basicConfig(
         filename= Path(os.path.dirname(__file__))/ "logs" / "hfo_spectral_detector.log",
@@ -44,7 +44,7 @@ def run_eeg_characterization(dataset_name, files_dict, out_path ):
 
         try:
         
-            eeg_reader = EEG_IO(eeg_filepath=eeg_fpath, mtg_t='ib')
+            eeg_reader = EEG_IO(eeg_filepath=eeg_fpath, mtg_t=mtg_name)
             eeg_reader.remove_natus_virtual_channels()
             assert eeg_reader.fs > 1000, "Sampling Rate is under 1000 Hz!"
 
@@ -118,28 +118,36 @@ def run_eeg_characterization(dataset_name, files_dict, out_path ):
 
 if __name__ == "__main__":
 
+    # Automatically enable test mode when running in debugger or no arguments passed
+    test_mode = sys.gettrace() is not None or len(sys.argv) == 1
 
-    parser = argparse.ArgumentParser(description='Characterize EEG to detect HFO')
-    parser.add_argument('--name', type=str, required=True, help='Name of the dataset')
-    parser.add_argument('--inpath', type=str, required=True, help='Path to directory containing EEG files')
-    parser.add_argument('--format', type=str, default="edf", help='File format of the EEG files (default: edf)')
-    parser.add_argument('--outpath', type=str, help='Path to the output directory')
-    parser.add_argument('--test', action='store_true', default=False, help='Set test flag (default: False)')
-    args = parser.parse_args()
-
-    if args.test:
+    if test_mode:
 
         # Define Dataset name and data path
-        dataset_name = f"Frankfurt_CLAE"               
-        data_path = Path("/work/jacobs_lab/Frankfurt_Project/CLAE_Run/")
-        eeg_format = "vhdr"
-        out_path = Path("/work/jacobs_lab/Detection_Output/Characterized_Spectral_Blobs/1_Characterized_Objects_") / dataset_name
+        dataset_name = f"PhysioTest"               
+        data_path = Path("/work/jacobs_lab/EEG_Data/AnonymPhysioEEGs/")
+        out_path = Path(f"/work/jacobs_lab/Output/Output_{dataset_name}/")
+        eeg_format = "edf"
+        mtg_name = "sb"
 
     else:
+        parser = argparse.ArgumentParser(description='Characterize EEG to detect HFO')
+        parser.add_argument('--name', type=str, required=True, help='Name of the dataset')
+        parser.add_argument('--inpath', type=str, required=True, help='Path to directory containing EEG files')
+        parser.add_argument('--outpath', type=str, help='Path to the output directory')
+        parser.add_argument('--format', type=str, default="edf", help='File format of the EEG files (default: edf)')
+        parser.add_argument('--montage', type=str, required=True, help='Name of the montage (ib, ir, sb, sr)')
+
+        args = parser.parse_args()
+
         dataset_name = args.name
         data_path = Path(args.inpath)
         eeg_format = args.format
         out_path = Path(args.outpath)
+        mtg_name = args.montage
+
+        # create out_path directory
+        #out_path.mkdir(parents=True, exist_ok=True)
 
     print("socket.gethostname() = ", socket.gethostname())
     print(f"Number of CPUs: {os.cpu_count()}")
@@ -148,15 +156,18 @@ if __name__ == "__main__":
     print(f"Input path = {str(data_path)}")
     print(f"EEG format = {str(eeg_format)}")
     print(f"Output path = {str(out_path)}")
-    if args.test:
+    if test_mode:
         print(f"Running Test Mode!")
 
     logger.info(f"Dataset = {str(dataset_name)}")
     logger.info(f"Input path = {str(data_path)}")
     logger.info(f"EEG format = {str(eeg_format)}")
     logger.info(f"Output path = {str(out_path)}")
-    if args.test:
-        logger.info(f"Running Test Mode!")
+    
+    if test_mode:
+        logger.info(f"Running test mode!")
+    else:
+        logger.info(f"Running in normal mode!")
 
     # Populate dictionary with files to process
     print("Files to process:")
@@ -164,12 +175,11 @@ if __name__ == "__main__":
 
     files_dict = {'PatName': [], 'Filepath': []}
     for path in data_path.glob(f"**/*.{eeg_format}"):
-        fname = path.parts[-1]
-        files_dict['PatName'].append(fname)
         files_dict['Filepath'].append(path)
+        files_dict['PatName'].append(path.stem)
 
-        print(f"{fname}")
-        logger.info(f"{fname}")
+        print(f"{path.stem}")
+        logger.info(f"{path.stem}")
 
 
-    #run_eeg_characterization(dataset_name, files_dict, out_path)
+    run_eeg_characterization(dataset_name, files_dict, mtg_name, out_path)

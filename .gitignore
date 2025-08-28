@@ -14,7 +14,8 @@
 *.csv
 *.log
 hfo_spectral_detector.log
-
+.out
 
 # VENV
 .venv/
+*.out
