@@ -47,7 +47,9 @@ class HFO_Detector:
             'EventBkgrndRatio_Power', 
             ]
 
-    
+    def set_fs(self, fs):
+        self.fs = fs
+
     def load_models(self):
         # Check if the model and scaler files exist
         assert os.path.isfile(self.classifier_model_fpath), f"Classifier model file not found: {self.classifier_model_fpath}"
@@ -71,7 +73,7 @@ class HFO_Detector:
 
         return valid_obj_sel
 
-    def auto_hfo_detection(self, contour_objs_df, eeg_n_samples, eeg_fs):
+    def auto_hfo_detection(self, contour_objs_df):
 
         # Get patient name
         pat_name = contour_objs_df.Patient.unique()
@@ -106,7 +108,7 @@ class HFO_Detector:
             elpi_hfo_marks_fn = f"{pat_name}_hfo_detections.mat"
             elpi_hfo_marks_fpath = self.output_path / elpi_hfo_marks_fn
 
-            elpi_hfo_detections_df = self.contour_objs_to_elpi(detected_hfo_contours_df, eeg_n_samples, eeg_fs)
+            elpi_hfo_detections_df = self.contour_objs_to_elpi(detected_hfo_contours_df)
             elpi_hfo_detections_df.Type = f"spctHFO"
 
             if len(elpi_hfo_detections_df)>0:
@@ -115,8 +117,146 @@ class HFO_Detector:
             print(f"No HFO detections found for {pat_name}. Skipping to next file.")
 
         return
- 
-    def contour_objs_to_elpi(self, eoi_feats_df, eeg_n_samples, eeg_fs):
+
+    def run_hfo_detection(self, contour_objs_df):
+        """
+        Optimized version of auto_hfo_detection with improved error handling,
+        data validation, and more efficient processing.
+        
+        Args:
+            contour_objs_df: DataFrame containing contour object features
+            
+        Returns:
+            tuple: (detected_hfo_contours_df, elpi_detections_df, output_file_path)
+                   Returns None values if no detections found
+        """
+        # Input validation
+        if contour_objs_df is None or len(contour_objs_df) == 0:
+            raise ValueError("Input DataFrame is empty or None")
+        
+        # Get and validate patient name
+        pat_names = contour_objs_df.Patient.unique()
+        if len(pat_names) != 1:
+            raise ValueError(f"DataFrame must contain exactly one patient, found {len(pat_names)}")
+        pat_name = pat_names[0]
+        
+        print(f"Classifier model: {self.classifier_model_fpath.stem}")
+        print(f"Processing patient: {pat_name}")
+        
+        # Clean DataFrame - remove unnamed columns efficiently
+        unnamed_cols = contour_objs_df.columns[contour_objs_df.columns.str.contains('Unnamed')]
+        if len(unnamed_cols) > 0:
+            contour_objs_df = contour_objs_df.drop(columns=unnamed_cols)
+        
+        if len(contour_objs_df) == 0:
+            raise ValueError("No valid HFO objects found after cleaning")
+        
+        # Validate required columns for feature engineering
+        required_cols = ['bp_sig_pow', 'bkgrnd_sig_pow', 'bp_sig_std', 'bkgrnd_sig_std']
+        missing_cols = [col for col in required_cols if col not in contour_objs_df.columns]
+        if missing_cols:
+            raise ValueError(f"Missing required columns: {missing_cols}")
+        
+        # Add engineered features with error handling for division by zero
+        contour_objs_df = self._add_ratio_features(contour_objs_df)
+        
+        # Validate that feature selection columns exist
+        missing_features = [feat for feat in self.feature_selection if feat not in contour_objs_df.columns]
+        if missing_features:
+            raise ValueError(f"Missing required features for classification: {missing_features}")
+        
+        # Pre-filter obviously negative objects
+        very_negative_sel = self.select_obvious_gs_negative_objs(contour_objs_df, 0)
+        contours_to_detect_df = contour_objs_df[~very_negative_sel].reset_index(drop=True)
+        
+        if len(contours_to_detect_df) == 0:
+            print(f"No valid contours remaining after pre-filtering for {pat_name}")
+            return None, None, None
+        
+        print(f"Processing {len(contours_to_detect_df)} contours after pre-filtering "
+              f"(filtered out {np.sum(very_negative_sel)} obvious negatives)")
+        
+        # Feature scaling and prediction
+        try:
+            feature_matrix = contours_to_detect_df[self.feature_selection].to_numpy()
+            scaled_feat_vals = self.feat_scaler.transform(feature_matrix)
+            y_pred = self.classifier_model.predict(scaled_feat_vals).ravel()
+        except Exception as e:
+            raise RuntimeError(f"Error during classification: {str(e)}")
+        
+        # Get positive detections
+        positive_mask = y_pred > 0
+        detected_hfo_contours_df = contours_to_detect_df[positive_mask].reset_index(drop=True).copy()
+        
+        print(f"Detected {len(detected_hfo_contours_df)} HFO events from {len(contours_to_detect_df)} candidates")
+        
+        if len(detected_hfo_contours_df) == 0:
+            print(f"No HFO detections found for {pat_name}")
+            return detected_hfo_contours_df, None, None
+        
+        # Convert to ELPI format
+        try:
+            elpi_hfo_detections_df = self.contour_objs_to_elpi(detected_hfo_contours_df)
+            elpi_hfo_detections_df.loc[:, 'Type'] = "spctHFO"
+        except Exception as e:
+            raise RuntimeError(f"Error converting to ELPI format: {str(e)}")
+        
+        if len(elpi_hfo_detections_df) == 0:
+            print(f"No valid ELPI detections generated for {pat_name}")
+            return detected_hfo_contours_df, elpi_hfo_detections_df, None
+        
+        # Save results
+        elpi_hfo_marks_fn = f"{pat_name}_hfo_detections.mat"
+        elpi_hfo_marks_fpath = self.output_path / elpi_hfo_marks_fn
+        
+        try:
+            write_elpi_file(elpi_hfo_detections_df, elpi_hfo_marks_fpath)
+            print(f"Saved {len(elpi_hfo_detections_df)} HFO detections to {elpi_hfo_marks_fpath}")
+        except Exception as e:
+            raise RuntimeError(f"Error saving ELPI file: {str(e)}")
+        
+        return detected_hfo_contours_df, elpi_hfo_detections_df, elpi_hfo_marks_fpath
+    
+    def _add_ratio_features(self, df):
+        """
+        Add ratio features between event and background signals with robust error handling.
+        
+        Args:
+            df: DataFrame with signal features
+            
+        Returns:
+            DataFrame with added ratio features
+        """
+        df = df.copy()  # Avoid modifying original DataFrame
+        
+        # Define ratio feature mappings
+        ratio_features = {
+            'EventBkgrndRatio_Power': ('bp_sig_pow', 'bkgrnd_sig_pow'),
+            'EventBkgrndRatio_StdDev': ('bp_sig_std', 'bkgrnd_sig_std'),
+            'EventBkgrndRatio_Activity': ('bp_sig_activity', 'bkgrnd_sig_activity'),
+            'EventBkgrndRatio_Mobility': ('bp_sig_avg_mobility', 'bkgrnd_sig_avg_mobility'),
+            'EventBkgrndRatio_Complexity': ('bp_sig_complexity', 'bkgrnd_sig_complexity')
+        }
+        
+        for ratio_name, (numerator_col, denominator_col) in ratio_features.items():
+            if numerator_col in df.columns and denominator_col in df.columns:
+                # Handle division by zero and invalid values
+                denominator = df[denominator_col].to_numpy()
+                numerator = df[numerator_col].to_numpy()
+                
+                # Replace zeros and very small values in denominator to avoid division issues
+                safe_denominator = np.where(np.abs(denominator) < 1e-10, 1e-10, denominator)
+                ratio = numerator / safe_denominator
+                
+                # Handle infinite and NaN values
+                ratio = np.where(np.isfinite(ratio), ratio, np.nan)
+                df[ratio_name] = ratio
+            else:
+                print(f"Warning: Cannot create {ratio_name}, missing columns: {numerator_col} or {denominator_col}")
+        
+        return df
+
+    def contour_objs_to_elpi(self, eoi_feats_df):
         """
         Create the elpi files with the HFO detections
         """
@@ -125,8 +265,7 @@ class HFO_Detector:
         assert len(pat_names) == 1, "Features DataFrame contains more than one patient."
         pat_name = pat_names[0]
         
-        fs = eeg_fs
-        assert fs > 1000, "Sampling Rate is under 1000 Hz!"
+        assert self.fs > 1000, "Sampling Rate is under 1000 Hz!"
         
         # Pre-allocate result dictionary
         all_channs_eoi_dict = {
@@ -145,7 +284,7 @@ class HFO_Detector:
         # Get unique channels
         channels = eoi_feats_df.channel.unique()
         
-        # Generate creation time once
+        # Generate creation time
         creation_time = datetime.datetime.now().strftime("%Y_%m_%d__%H_%M_%S")
         
         for channel_idx, channel in enumerate(channels):
@@ -174,8 +313,8 @@ class HFO_Detector:
             merged_end_ms = np.array([interval[1] for interval in merged_intervals])
             
             # Convert to samples (vectorized)
-            merged_start_samples = np.round(fs * merged_start_ms / 1000).astype(np.int64)
-            merged_end_samples = np.round(fs * merged_end_ms / 1000).astype(np.int64)
+            merged_start_samples = np.round(self.fs * merged_start_ms / 1000).astype(np.int64)
+            merged_end_samples = np.round(self.fs * merged_end_ms / 1000).astype(np.int64)
             
             num_intervals = len(merged_intervals)
             

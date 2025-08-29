@@ -68,7 +68,6 @@ def run_eeg_characterization(dataset_name, files_dict, mtg_name, out_path ):
             ANALYSIS_END_SAMPLE = eeg_reader.n_samples
             #ANALYSIS_END_SAMPLE = ANALYSIS_START_SAMPLE + 60*fs
 
-
             logger.info(pat_name)
             logger.info(f"EEG Duration: {eeg_reader.n_samples/fs} seconds")
             logger.info(f"EEG Sampling Rate: {eeg_reader.fs} Hz")
@@ -112,8 +111,10 @@ def run_eeg_characterization(dataset_name, files_dict, mtg_name, out_path ):
             }
             characterize_events(**params)
             contour_objs_df = collect_chann_spec_events(**params)
-            detector.auto_hfo_detection(contour_objs_df, eeg_reader.n_samples, eeg_reader.fs)
-            pass
+            
+            detector.set_fs(fs)
+            detector.run_hfo_detection(contour_objs_df)
+            
         except Exception as e:
             logger.error(f"Error processing {pat_name}: {e}")
             continue
