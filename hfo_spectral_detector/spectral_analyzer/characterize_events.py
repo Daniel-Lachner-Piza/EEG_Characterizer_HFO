@@ -56,7 +56,7 @@ def collect_chann_spec_events(pat_name: str, eeg_reader: EEG_IO, an_wdws_dict: d
     logger.info(f"{pat_name}\ncollect_chann_spec_events")
     print(f"{pat_name}\ncollect_chann_spec_events")
 
-    all_ch_df_filepath = out_path / f"{pat_name}All_Ch_Objects.parquet"
+    all_ch_df_filepath = out_path / f"{pat_name}_All_Ch_Objects.parquet"
     if os.path.isfile(all_ch_df_filepath) and  not force_recalc:
         all_ch_contours_df = pd.read_parquet(all_ch_df_filepath)
         return
@@ -67,7 +67,7 @@ def collect_chann_spec_events(pat_name: str, eeg_reader: EEG_IO, an_wdws_dict: d
     ch_objs_ls = []
     for i, mtg in enumerate(mtg_labels):
 
-        ch_df_filepath = new_out_path / f"{pat_name}_{mtg}_objects.parquet"
+        ch_df_filepath = new_out_path / mtg / f"{pat_name}_{mtg}_objects.parquet"
         ch_contours_df = pd.read_parquet(ch_df_filepath)
         if len(ch_contours_df)>0:
             ch_objs_ls.append(ch_contours_df)
@@ -186,54 +186,31 @@ def channel_specific_characterization(pat_name: str, fs: float, screen_size:tupl
 
         wdw_objects_feats_ls = []
         tot_nr_contour_objs = 0
+        n_jobs = int(CPU_COUNT*1.0)
         if not go_parallel:
-            for evnt_idx in range(nr_events_in_ch):
+            n_jobs = 1
 
-                #save_spect_img = np.sum(np.floor(chann_events_start[evnt_idx]/fs)==seconds_to_plot)>0
-
-                wdw_contours_df = hfo_spectro_bp_wdw_analysis(\
-                    pat_name=pat_name, \
-                    fs=fs, \
-                    mtg=mtg, \
-                    dcmwt_freqs=dcmwt_freqs, \
-                    screen_size=screen_size, \
-                    an_start_ms = chann_events_start[evnt_idx]/fs*1000, \
-                    an_raw_signal = mtg_signal[chann_events_start[evnt_idx]:chann_events_end[evnt_idx]], \
-                    an_bp_signal = bp_signal[chann_events_start[evnt_idx]:chann_events_end[evnt_idx]], \
-                    an_dcwt = dcwt[:,chann_events_start[evnt_idx]:chann_events_end[evnt_idx]].copy(), \
-                    out_path=new_out_path, \
-                    save_spect_img=save_spect_img, \
-                    apply_notch_filter=apply_notch_filter
-                )
-                if len(wdw_contours_df)>0:
-                    wdw_objects_feats_ls.append(wdw_contours_df)
-                    tot_nr_contour_objs += wdw_contours_df.shape[0] 
-                    pass
-        else:
-            #n_jobs = CPU_COUNT
-            #n_jobs = int(CPU_COUNT*0.5)
-            n_jobs = int(CPU_COUNT*1.0)
-            logger.info(f"Using {n_jobs} parallel jobs")
-            print(f"Using {n_jobs} parallel jobs")
-            parallel = Parallel(n_jobs=n_jobs, return_as="list")
-            wdw_objects_feats_ls = parallel(
-                                delayed(hfo_spectro_bp_wdw_analysis)
-                                (
-                                    pat_name=pat_name, \
-                                    fs=fs, \
-                                    mtg=mtg, \
-                                    dcmwt_freqs=dcmwt_freqs, \
-                                    screen_size=screen_size, \
-                                    an_start_ms = chann_events_start[evnt_idx]/fs*1000, \
-                                    an_raw_signal = mtg_signal[chann_events_start[evnt_idx]:chann_events_end[evnt_idx]], \
-                                    an_bp_signal = bp_signal[chann_events_start[evnt_idx]:chann_events_end[evnt_idx]], \
-                                    an_dcwt = dcwt[:,chann_events_start[evnt_idx]:chann_events_end[evnt_idx]].copy(), \
-                                    out_path=new_out_path, \
-                                    save_spect_img=save_spect_img, \
-                                    apply_notch_filter=apply_notch_filter,
-                                )
-                                for evnt_idx in range(nr_events_in_ch)
-                                )
+        logger.info(f"Using {n_jobs} parallel jobs")
+        print(f"Using {n_jobs} parallel jobs")
+        parallel = Parallel(n_jobs=n_jobs, return_as="list")
+        wdw_objects_feats_ls = parallel(
+                            delayed(hfo_spectro_bp_wdw_analysis)
+                            (
+                                pat_name=pat_name, \
+                                fs=fs, \
+                                mtg=mtg, \
+                                dcmwt_freqs=dcmwt_freqs, \
+                                screen_size=screen_size, \
+                                an_start_ms = chann_events_start[evnt_idx]/fs*1000, \
+                                an_raw_signal = mtg_signal[chann_events_start[evnt_idx]:chann_events_end[evnt_idx]], \
+                                an_bp_signal = bp_signal[chann_events_start[evnt_idx]:chann_events_end[evnt_idx]], \
+                                an_dcwt = dcwt[:,chann_events_start[evnt_idx]:chann_events_end[evnt_idx]].copy(), \
+                                out_path=new_out_path, \
+                                save_spect_img=save_spect_img, \
+                                apply_notch_filter=apply_notch_filter,
+                            )
+                            for evnt_idx in range(nr_events_in_ch)
+                            )
 
         tot_nr_contour_objs += len(wdw_objects_feats_ls)
         logger.info(f"Total nr. contour objects: {tot_nr_contour_objs}")

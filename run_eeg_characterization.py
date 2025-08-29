@@ -14,14 +14,16 @@ from pathlib import Path
 from hfo_spectral_detector.spectral_analyzer.characterize_events import characterize_events, collect_chann_spec_events
 #from hfo_spectral_detector.studies_info.studies_info import StudiesInfo
 from hfo_spectral_detector.eeg_io.eeg_io import EEG_IO
-from prediction.predict_characterize_hfo import HFO_Detector
+from hfo_spectral_detector.prediction.predict_characterize_hfo import HFO_Detector
 
 logger = logging.getLogger(__name__)
 
-def run_eeg_characterization(dataset_name, files_dict, mtg_name, out_path ):
+def run_eeg_characterization(dataset_name, files_dict, mtg_name, out_path):
     
+    log_fpath = Path(os.path.dirname(__file__))/ "logs" / "hfo_spectral_detector.log"
+    os.makedirs(log_fpath.parent, exist_ok=True)
     logging.basicConfig(
-        filename= Path(os.path.dirname(__file__))/ "logs" / "hfo_spectral_detector.log",
+        filename= log_fpath,
         format='%(asctime)s %(levelname)-8s %(message)s',
         level=logging.INFO,
         datefmt='%Y-%m-%d %H:%M:%S'
@@ -38,7 +40,7 @@ def run_eeg_characterization(dataset_name, files_dict, mtg_name, out_path ):
 
     # Create the detector object
     detector_results_path = out_path / 'Elpi_Detector_Results'
-    detector = HFO_Detector(eeg_type=eeg_format, output_path=detector_results_path)
+    detector = HFO_Detector(eeg_type=mtg_name, output_path=detector_results_path)
     detector.load_models()
 
     files_idxs = np.arange(len(files_dict['PatName']))
@@ -65,6 +67,7 @@ def run_eeg_characterization(dataset_name, files_dict, mtg_name, out_path ):
             ANALYSIS_START_SAMPLE = ANALYSIS_START_S*fs
             wdw_duration_samples = int(1 * fs)
             step_samples = int(np.round(0.1 * fs))
+            #step_samples = int(np.round(1 * fs))
             ANALYSIS_END_SAMPLE = eeg_reader.n_samples
             #ANALYSIS_END_SAMPLE = ANALYSIS_START_SAMPLE + 60*fs
 
@@ -130,14 +133,13 @@ if __name__ == "__main__":
     test_mode = sys.gettrace() is not None or len(sys.argv) == 1
 
     if test_mode:
-
         # Define Dataset name and data path
-        dataset_name = f"PhysioTest"               
-        data_path = Path("/work/jacobs_lab/EEG_Data/AnonymPhysioEEGs/")
-        out_path = Path(f"/work/jacobs_lab/Output/Output_{dataset_name}/")
-        eeg_format = "edf"
-        mtg_name = "sb"
-
+        dataset_name="PhysioTest_DLP"
+        data_path=Path("/home/dlp/Documents/Development/Data/Physio_EEG_Data/")
+        out_path=Path("/home/dlp/Documents/Development/Data/Test-DLP-Output/")
+        eeg_format="edf"
+        mtg_name="sb"
+        plf=60
     else:
         parser = argparse.ArgumentParser(description='Characterize EEG to detect HFO')
         parser.add_argument('--name', type=str, required=True, help='Name of the dataset')
@@ -145,6 +147,7 @@ if __name__ == "__main__":
         parser.add_argument('--outpath', type=str, help='Path to the output directory')
         parser.add_argument('--format', type=str, default="edf", help='File format of the EEG files (default: edf)')
         parser.add_argument('--montage', type=str, required=True, help='Name of the montage (ib, ir, sb, sr)')
+        parser.add_argument('--plf', type=int, default=60, help='Frequency of POwer Lines')
 
         args = parser.parse_args()
 
