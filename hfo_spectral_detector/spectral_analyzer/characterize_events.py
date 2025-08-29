@@ -59,7 +59,7 @@ def collect_chann_spec_events(pat_name: str, eeg_reader: EEG_IO, an_wdws_dict: d
     all_ch_df_filepath = out_path / f"{pat_name}_All_Ch_Objects.parquet"
     if os.path.isfile(all_ch_df_filepath) and  not force_recalc:
         all_ch_contours_df = pd.read_parquet(all_ch_df_filepath)
-        return
+        return all_ch_contours_df
 
     new_out_path = out_path / pat_name
     os.makedirs(new_out_path, exist_ok=True)
@@ -84,7 +84,7 @@ def collect_chann_spec_events(pat_name: str, eeg_reader: EEG_IO, an_wdws_dict: d
     
     return all_ch_contours_df
 
-def characterize_events(pat_name: str, eeg_reader: EEG_IO, an_wdws_dict: dict, out_path:str=None, power_line_freqs:float=None, go_parallel:bool=True, force_recalc:bool=False, save_spect_img:bool=False):
+def characterize_events(pat_name: str, eeg_reader: EEG_IO, an_wdws_dict: dict, out_path:str=None, power_line_freqs:float=60, go_parallel:bool=True, force_recalc:bool=False, save_spect_img:bool=False):
 
     print(f"{pat_name}\nCharacterize Events")
     assert power_line_freqs is not None, "Power line frequency is not defined!"

@@ -119,10 +119,7 @@ class HFO_Detector:
         return
 
     def run_hfo_detection(self, contour_objs_df):
-        """
-        Optimized version of auto_hfo_detection with improved error handling,
-        data validation, and more efficient processing.
-        
+        """        
         Args:
             contour_objs_df: DataFrame containing contour object features
             
@@ -198,6 +195,8 @@ class HFO_Detector:
         try:
             elpi_hfo_detections_df = self.contour_objs_to_elpi(detected_hfo_contours_df)
             elpi_hfo_detections_df.loc[:, 'Type'] = "spctHFO"
+            # Event type is spctHFO-ntd if the signal was notch filtered to remove power line noise
+            elpi_hfo_detections_df.loc[detected_hfo_contours_df.notch_filtered, 'Type'] = "spctHFO-ntd"
         except Exception as e:
             raise RuntimeError(f"Error converting to ELPI format: {str(e)}")
         

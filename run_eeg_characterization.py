@@ -18,7 +18,7 @@ from hfo_spectral_detector.prediction.predict_characterize_hfo import HFO_Detect
 
 logger = logging.getLogger(__name__)
 
-def run_eeg_characterization(dataset_name, files_dict, mtg_name, out_path):
+def run_eeg_characterization(dataset_name, files_dict, mtg_name, power_line_freqs, out_path):
     
     log_fpath = Path(os.path.dirname(__file__))/ "logs" / "hfo_spectral_detector.log"
     os.makedirs(log_fpath.parent, exist_ok=True)
@@ -55,8 +55,6 @@ def run_eeg_characterization(dataset_name, files_dict, mtg_name, out_path):
             eeg_reader = EEG_IO(eeg_filepath=eeg_fpath, mtg_t=mtg_name)
             eeg_reader.remove_natus_virtual_channels()
             assert eeg_reader.fs > 1000, "Sampling Rate is under 1000 Hz!"
-
-            power_line_freqs = 60
 
             # Read Elpi annotations
             elpi_annots = []#load_elpi_file(data_path+elpi_data_filename)
@@ -139,7 +137,7 @@ if __name__ == "__main__":
         out_path=Path("/home/dlp/Documents/Development/Data/Test-DLP-Output/")
         eeg_format="edf"
         mtg_name="sb"
-        plf=60
+        power_line_freqs=60
     else:
         parser = argparse.ArgumentParser(description='Characterize EEG to detect HFO')
         parser.add_argument('--name', type=str, required=True, help='Name of the dataset')
@@ -156,6 +154,7 @@ if __name__ == "__main__":
         eeg_format = args.format
         out_path = Path(args.outpath)
         mtg_name = args.montage
+        power_line_freqs = args.plf
 
         # create out_path directory
         #out_path.mkdir(parents=True, exist_ok=True)
@@ -193,4 +192,4 @@ if __name__ == "__main__":
         logger.info(f"{path.stem}")
 
 
-    run_eeg_characterization(dataset_name, files_dict, mtg_name, out_path)
+    run_eeg_characterization(dataset_name, files_dict, mtg_name, power_line_freqs, out_path)
