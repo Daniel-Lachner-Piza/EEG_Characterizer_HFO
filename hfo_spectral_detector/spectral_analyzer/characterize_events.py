@@ -51,13 +51,14 @@ CPU_COUNT = os.cpu_count()
 def scale_array(arr):
     return (arr-min(arr)) / (np.max(arr)-np.min(arr))
 
-def collect_chann_spec_events(pat_name: str, eeg_reader: EEG_IO, an_wdws_dict: dict, out_path:str=None, power_line_freqs:float=None, go_parallel:bool=True, force_recalc:bool=False, save_spect_img:bool=False):
+def collect_chann_spec_events(pat_name: str, eeg_reader: EEG_IO, an_wdws_dict: dict, out_path:str=None, power_line_freqs:float=None, go_parallel:bool=True, force_recalc:bool=False, save_spect_img:bool=False)->pd.DataFrame:
 
     logger.info(f"{pat_name}\ncollect_chann_spec_events")
     print(f"{pat_name}\ncollect_chann_spec_events")
 
     all_ch_df_filepath = out_path / f"{pat_name}All_Ch_Objects.parquet"
     if os.path.isfile(all_ch_df_filepath) and  not force_recalc:
+        all_ch_contours_df = pd.read_parquet(all_ch_df_filepath)
         return
 
     new_out_path = out_path / pat_name
@@ -80,6 +81,8 @@ def collect_chann_spec_events(pat_name: str, eeg_reader: EEG_IO, an_wdws_dict: d
         print(f"Saving {all_ch_df_filepath}")
         all_ch_contours_df = pd.concat(ch_objs_ls, ignore_index=True)
         all_ch_contours_df.to_parquet(all_ch_df_filepath, index=False)
+    
+    return all_ch_contours_df
 
 def characterize_events(pat_name: str, eeg_reader: EEG_IO, an_wdws_dict: dict, out_path:str=None, power_line_freqs:float=None, go_parallel:bool=True, force_recalc:bool=False, save_spect_img:bool=False):
 

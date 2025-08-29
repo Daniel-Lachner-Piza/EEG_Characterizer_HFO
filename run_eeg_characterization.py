@@ -37,17 +37,9 @@ def run_eeg_characterization(dataset_name, files_dict, mtg_name, out_path ):
     os.makedirs(out_path, exist_ok=True)
 
     # Create the detector object
-    eeg_files_ls = np.flip(files_dict['PatName'])
-    eeg_data_path = files_dict['Filepath'][0].parent
-    detector = HFO_Detector(eeg_type=eeg_format, 
-                            eeg_data_path=eeg_data_path, 
-                            eeg_filenames=eeg_files_ls, 
-                            characterized_data_path=out_path, 
-                            )
-    detector_results_path = out_path / 'Elpi_Detector_Results'   
-    os.makedirs(detector_results_path, exist_ok=True)
+    detector_results_path = out_path / 'Elpi_Detector_Results'
+    detector = HFO_Detector(eeg_type=eeg_format, output_path=detector_results_path)
     detector.load_models()
-    detector.auto_hfo_detection(detector_results_path)
 
     files_idxs = np.arange(len(files_dict['PatName']))
     #files_idxs = files_idxs[0:6]
@@ -119,7 +111,8 @@ def run_eeg_characterization(dataset_name, files_dict, mtg_name, out_path ):
                 "save_spect_img":SAVE_SPECT_IMAGE,
             }
             characterize_events(**params)
-            collect_chann_spec_events(**params)
+            contour_objs_df = collect_chann_spec_events(**params)
+            detector.auto_hfo_detection(contour_objs_df, eeg_reader.n_samples, eeg_reader.fs)
             pass
         except Exception as e:
             logger.error(f"Error processing {pat_name}: {e}")

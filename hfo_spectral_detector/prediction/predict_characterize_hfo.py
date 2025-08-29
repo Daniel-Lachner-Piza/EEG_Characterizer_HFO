@@ -15,14 +15,13 @@ from xgboost import XGBClassifier
 import xgboost as xgb
 
 class HFO_Detector:
-    def __init__(self, eeg_type:str="", eeg_data_path:str=None, eeg_filenames:str=None, characterized_data_path:str=None) -> None:
+    def __init__(self, eeg_type:str="", output_path:str=None) -> None:
 
         assert eeg_type in ['sr', 'sb', 'ir', 'ib'], "EEG type must be one of 'sr', 'sb', 'ir', or 'ib'."
 
         self.eeg_type = eeg_type
-        self.eeg_data_path = eeg_data_path
-        self.eeg_filenames = eeg_filenames
-        self.characterized_data_path = characterized_data_path
+        self.output_path = output_path
+        os.makedirs(self.output_path, exist_ok=True)
         
         # Define the path to the classifier model and the standard scaler
         models_path = Path(__file__).parent
@@ -61,37 +60,75 @@ class HFO_Detector:
 
         pass
 
+    def select_obvious_gs_negative_objs(self, gs_objs_df, fs):
 
-    def contour_objs_to_elpi(self, eeg_fn, eoi_feats_df):
+        ################################################
+        min_nr_bp_osc = 2 # 3
+        hvr_nok = gs_objs_df.hvr.to_numpy() < 10 # 10
+        spect_osc_nok = gs_objs_df.nr_oscillations.to_numpy()<4  #<3
+        nr_prom_peaks_nok = np.logical_and(gs_objs_df.prom_peaks_nr.to_numpy() < min_nr_bp_osc, gs_objs_df.inverted_prom_peaks_nr.to_numpy() < min_nr_bp_osc)
+        valid_obj_sel = np.logical_or.reduce((hvr_nok, spect_osc_nok))
 
-        if len(eoi_feats_df) == 0:
-            print(f"No EOI features found for {eeg_fn}. Skipping to next file.")
-            return pd.DataFrame()
-         
-        eoir_feats_df_patient_name = eoi_feats_df.Patient.unique()
-        assert len(eoir_feats_df_patient_name) == 1
+        return valid_obj_sel
 
-        mtg_labels = []
-        fs = 0
-        n_samples = 0
-        eeg_dur_s = 0
+    def auto_hfo_detection(self, contour_objs_df, eeg_n_samples, eeg_fs):
 
+        # Get patient name
+        pat_name = contour_objs_df.Patient.unique()
+        assert len(pat_name)==1, "Features DataFrame contains more than one patient."
 
-        # Read EEG
-        fs = 0
-        eeg_fpath = self.eeg_data_path / eeg_fn
-        try:
-            eeg_reader = EEG_IO(eeg_filepath=eeg_fpath, mtg_t=self.eeg_type)
-            fs = eeg_reader.fs
-        except:
-            print(f"Erro reading scalp-referential montage from EEG file: {eeg_fpath}")
+        print("Classifier model: ", self.classifier_model_fpath.stem)
+        print(f"Processing {pat_name}")
+
+        # Check structure of data frame with contour objects
+        contour_objs_df = contour_objs_df.loc[:, ~contour_objs_df.columns.str.contains('Unnamed')]
+        assert len(contour_objs_df)>0, "No HFO objects found for this patient"
+        contour_objs_df = contour_objs_df.loc[:, ~contour_objs_df.columns.str.contains('Unnamed')]
+
+        # Add features describing the ratio between Event and Background
+        contour_objs_df['EventBkgrndRatio_Power'] = contour_objs_df['bp_sig_pow']/contour_objs_df['bkgrnd_sig_pow']
+        contour_objs_df['EventBkgrndRatio_StdDev'] = contour_objs_df['bp_sig_std']/contour_objs_df['bkgrnd_sig_std']
+        contour_objs_df['EventBkgrndRatio_Activity'] = contour_objs_df['bp_sig_activity']/contour_objs_df['bkgrnd_sig_activity']
+        contour_objs_df['EventBkgrndRatio_Mobility'] = contour_objs_df['bp_sig_avg_mobility']/contour_objs_df['bkgrnd_sig_avg_mobility']
+        contour_objs_df['EventBkgrndRatio_Complexity'] = contour_objs_df['bp_sig_complexity']/contour_objs_df['bkgrnd_sig_complexity']
         
-        assert fs> 1000, "Sampling Rate is under 1000 Hz!"
+        # # Detection of HFO contour objects
+        very_negative_sel = self.select_obvious_gs_negative_objs(contour_objs_df, 0)
+        contours_to_detect_df = contour_objs_df[np.logical_not(very_negative_sel)].reset_index(drop=True)
 
-        n_samples = eeg_reader.n_samples
-        eeg_dur_s = n_samples/fs
+        scaled_feat_vals = self.feat_scaler.transform(contours_to_detect_df[self.feature_selection].to_numpy())
+        y_pred = self.classifier_model.predict(scaled_feat_vals).ravel()
+
+        detected_hfo_contours_df = contours_to_detect_df[y_pred>0].reset_index(drop=True).copy()
+
+        if detected_hfo_contours_df.shape[0]> 0:
+            # Save the detected HFO contours to a new file
+            elpi_hfo_marks_fn = f"{pat_name}_hfo_detections.mat"
+            elpi_hfo_marks_fpath = self.output_path / elpi_hfo_marks_fn
+
+            elpi_hfo_detections_df = self.contour_objs_to_elpi(detected_hfo_contours_df, eeg_n_samples, eeg_fs)
+            elpi_hfo_detections_df.Type = f"spctHFO"
+
+            if len(elpi_hfo_detections_df)>0:
+                write_elpi_file(elpi_hfo_detections_df, elpi_hfo_marks_fpath)
+        else:
+            print(f"No HFO detections found for {pat_name}. Skipping to next file.")
+
+        return
+ 
+    def contour_objs_to_elpi(self, eoi_feats_df, eeg_n_samples, eeg_fs):
+        """
+        Create the elpi files with the HFO detections
+        """
+        # Validate input
+        pat_names = eoi_feats_df.Patient.unique()
+        assert len(pat_names) == 1, "Features DataFrame contains more than one patient."
+        pat_name = pat_names[0]
         
-        # Pre-allocate dictionaries for the elpi file 
+        fs = eeg_fs
+        assert fs > 1000, "Sampling Rate is under 1000 Hz!"
+        
+        # Pre-allocate result dictionary
         all_channs_eoi_dict = {
             "Channel": [],
             "Type": [],
@@ -104,185 +141,92 @@ class HFO_Detector:
             "CreationTime": [],
             "User": [],
         }
-
-        if fs > 0:
-            pat_name = eoi_feats_df.Patient.unique()
-            assert len(pat_name)==1, "Features DataFrame contains more than one patient."
-
-            mtg_labels = eoi_feats_df.channel.unique()
-
-            mask_step_size_ms = 1
-            time_mask = np.arange(0, eeg_dur_s*1000, mask_step_size_ms)
-            for idx, mtg in enumerate(mtg_labels):
+        
+        # Get unique channels
+        channels = eoi_feats_df.channel.unique()
+        
+        # Generate creation time once
+        creation_time = datetime.datetime.now().strftime("%Y_%m_%d__%H_%M_%S")
+        
+        for channel_idx, channel in enumerate(channels):
+            print(f"Processing channel {channel} ({channel_idx+1}/{len(channels)})")
+            
+            # Filter data for current channel (case-insensitive)
+            channel_data = eoi_feats_df[
+                eoi_feats_df.channel.str.lower() == channel.lower()
+            ].reset_index(drop=True)
+            
+            if len(channel_data) == 0:
+                print(f"No EOI in channel: {channel}")
+                continue
                 
-                print(f"Processing channel {mtg} ({idx+1}/{len(mtg_labels)})")
-                this_ch_objs_df = eoi_feats_df[eoi_feats_df.channel.str.fullmatch(mtg.lower(), case=False)].reset_index(drop=True)
-                if len(this_ch_objs_df)>0:
-                    chan_eoi_start_ms = this_ch_objs_df.start_ms.to_numpy()
-                    chan_eoi_end_ms = this_ch_objs_df.end_ms.to_numpy()
-
-                    # Create a zeroed-mask for all samples
-                    # If an EOI is found for a certain sample range, then place a 1 within this range
-                    eoi_mask = np.zeros_like(time_mask)
-                    for idx, (eoi_start_ms, eoi_end_ms) in enumerate(zip(chan_eoi_start_ms, chan_eoi_end_ms)):
-                        eoi_mask[np.logical_and(time_mask>=eoi_start_ms,time_mask<=eoi_end_ms)] = 1
-
-                    # Get the start and end times of the zeroed-mask by finding the first and last 1 from sequences surrounded by zeros
-                    eoi_start_times_ms = time_mask[np.argwhere(np.diff(eoi_mask) == 1)+1]
-                    eoi_end_times_ms = time_mask[np.argwhere(np.diff(eoi_mask) == -1)]
-                    eoi_start_times_ms = eoi_start_times_ms.flatten()
-                    eoi_end_times_ms = eoi_end_times_ms.flatten()
-
-                    assert len(eoi_start_times_ms) == len(eoi_end_times_ms), f"Processing patient {pat_name}, channel {mtg}. Start and end times of EOI do not match!"
-                    
-                    eoi_durations_ms = eoi_end_times_ms-eoi_start_times_ms
-                    eoi_start_samples = np.round(fs*eoi_start_times_ms/1000)
-                    eoi_start_samples = eoi_start_samples.astype(np.int64)
-                    eoi_end_samples = np.round(fs*eoi_end_times_ms/1000)
-                    eoi_end_samples = eoi_end_samples.astype(np.int64)
-
-                    nr_eoi = len(eoi_start_times_ms)
-
-                    # Create a dictionary with the EOI information so that it can be read in Elpi
-                    creation_time = datetime.datetime.now().strftime("%Y_%m_%d__%H_%M_%S")
-                    merged_eoi_dict = {
-                        "Channel": [mtg] * nr_eoi,
-                        "Type": ["spect_HFO"] * nr_eoi,
-                        "StartSec": eoi_start_times_ms/1000,
-                        "EndSec": eoi_end_times_ms/1000,
-                        "StartSample": eoi_start_samples,
-                        "EndSample": eoi_end_samples,
-                        "Comments": [pat_name] * nr_eoi,
-                        "ChSpec": np.ones(nr_eoi, dtype=bool),
-                        "CreationTime": [creation_time] * nr_eoi,
-                        "User": ["DLP_Prune_HFO"] * nr_eoi,
-                    }
-
-                    # Check that all columns have the same number of elements
-                    #print([len(value) for key, value in merged_eoi_dict.items()])
-
-                    if nr_eoi > 0:
-                        for key, values in merged_eoi_dict.items():
-                            assert (key in all_channs_eoi_dict.keys()), "Key not found in all channels dictionary!"
-                            if key in all_channs_eoi_dict.keys():
-                                all_channs_eoi_dict[key].extend(values)
-                else:
-                    print("No EOI in channel: ", mtg)
-
-                #detections_mat_fn = (out_files_dest_path + f"{pat_name}_spectrogram_HFO.mat")
-                #savemat(detections_mat_fn, all_channs_eoi_dict)
-                pass
-
+            # Extract start and end times
+            start_times_ms = channel_data.start_ms.to_numpy()
+            end_times_ms = channel_data.end_ms.to_numpy()
+            
+            # Merge overlapping intervals efficiently
+            merged_intervals = self._merge_overlapping_intervals(start_times_ms, end_times_ms)            
+            if len(merged_intervals) == 0:
+                continue
+                
+            # Convert to arrays for vectorized operations
+            merged_start_ms = np.array([interval[0] for interval in merged_intervals])
+            merged_end_ms = np.array([interval[1] for interval in merged_intervals])
+            
+            # Convert to samples (vectorized)
+            merged_start_samples = np.round(fs * merged_start_ms / 1000).astype(np.int64)
+            merged_end_samples = np.round(fs * merged_end_ms / 1000).astype(np.int64)
+            
+            num_intervals = len(merged_intervals)
+            
+            # Extend all dictionary lists at once (more efficient than individual extends)
+            all_channs_eoi_dict["Channel"].extend([channel] * num_intervals)
+            all_channs_eoi_dict["Type"].extend(["spect_HFO"] * num_intervals)
+            all_channs_eoi_dict["StartSec"].extend(merged_start_ms / 1000)
+            all_channs_eoi_dict["EndSec"].extend(merged_end_ms / 1000)
+            all_channs_eoi_dict["StartSample"].extend(merged_start_samples)
+            all_channs_eoi_dict["EndSample"].extend(merged_end_samples)
+            all_channs_eoi_dict["Comments"].extend([pat_name] * num_intervals)
+            all_channs_eoi_dict["ChSpec"].extend([True] * num_intervals)
+            all_channs_eoi_dict["CreationTime"].extend([creation_time] * num_intervals)
+            all_channs_eoi_dict["User"].extend(["DLP_Prune_HFO"] * num_intervals)
+        
         return pd.DataFrame(all_channs_eoi_dict)
     
-    def select_obvious_gs_negative_objs(self, gs_objs_df, fs):
-
-        ################################################
-        min_nr_bp_osc = 2 # 3
-        hvr_nok = gs_objs_df.hvr.to_numpy() < 10 # 10
-        spect_osc_nok = gs_objs_df.nr_oscillations.to_numpy()<4  #<3
-        nr_prom_peaks_nok = np.logical_and(gs_objs_df.prom_peaks_nr.to_numpy() < min_nr_bp_osc, gs_objs_df.inverted_prom_peaks_nr.to_numpy() < min_nr_bp_osc)
-        valid_obj_sel = np.logical_or.reduce((hvr_nok, spect_osc_nok))
-
-        return valid_obj_sel
-
-    def auto_hfo_detection(self, out_files_dest_path, force_recalc:bool=True):
-
-        print("Classifier model: ", self.classifier_model_fpath)
+    def _merge_overlapping_intervals(self, start_times, end_times):
+        """
+        Merge overlapping intervals using a sweep line algorithm.
         
-        hfo_marks_path = out_files_dest_path
-        os.makedirs(hfo_marks_path, exist_ok=True)
-
-        for idx, eeg_fn in enumerate(self.eeg_filenames):
-
-            pat_name = eeg_fn
-            print(pat_name)
-
-            elpi_hfo_marks_fn = pat_name.replace('.vhdr', '') + "__hfo_detections.mat"
-            elpi_hfo_marks_fpath = out_files_dest_path / elpi_hfo_marks_fn
-            os.makedirs(elpi_hfo_marks_fpath.parent, exist_ok=True)
-
-            if os.path.isfile(elpi_hfo_marks_fpath) and not force_recalc:
-                print(f"File already exists: {elpi_hfo_marks_fpath}")
-                continue
-
-            # Read detections
-            contour_objs_df_filepath = self.characterized_data_path / f"{pat_name}All_Ch_Objects.parquet"
-            try:
-                contour_objs_df = pd.read_parquet(contour_objs_df_filepath)
-                contour_objs_df = contour_objs_df.loc[:, ~contour_objs_df.columns.str.contains('Unnamed')]
-
-                assert len(contour_objs_df)>0, "No HFO objects found for this patient"
-                contour_objs_df = contour_objs_df.loc[:, ~contour_objs_df.columns.str.contains('Unnamed')]
-                pass
-            except:
-                print(f"Detections file file not found: {contour_objs_df_filepath}")
-                continue
-
-            if 'EventBkgrndRatio_Power' in list(contour_objs_df.columns):
-                pass
-            # Add features describing the ratio between Event and Background
-            contour_objs_df['EventBkgrndRatio_Power'] = contour_objs_df['bp_sig_pow']/contour_objs_df['bkgrnd_sig_pow']
-            contour_objs_df['EventBkgrndRatio_StdDev'] = contour_objs_df['bp_sig_std']/contour_objs_df['bkgrnd_sig_std']
-            contour_objs_df['EventBkgrndRatio_Activity'] = contour_objs_df['bp_sig_activity']/contour_objs_df['bkgrnd_sig_activity']
-            contour_objs_df['EventBkgrndRatio_Mobility'] = contour_objs_df['bp_sig_avg_mobility']/contour_objs_df['bkgrnd_sig_avg_mobility']
-            contour_objs_df['EventBkgrndRatio_Complexity'] = contour_objs_df['bp_sig_complexity']/contour_objs_df['bkgrnd_sig_complexity']
-
-            print(f"\n\nProcessing {contour_objs_df_filepath}")
-          
-            # # Detection of HFO contour objects
-            very_negative_sel = self.select_obvious_gs_negative_objs(contour_objs_df, 0)
-            contours_to_detect_df = contour_objs_df[np.logical_not(very_negative_sel)].copy().reset_index(drop=True)
-
-            scaled_feat_vals = self.feat_scaler.transform(contours_to_detect_df[self.feature_selection].to_numpy())
-            y_pred = self.classifier_model.predict(scaled_feat_vals).ravel()
-
-            detected_hfo_contours_df = contours_to_detect_df[y_pred>0].reset_index(drop=True).copy()
-
-            if detected_hfo_contours_df.shape[0]> 0:
-                # Save the detected HFO contours to a new file
-                elpi_hfo_detections_df = self.contour_objs_to_elpi(Path(eeg_fn), detected_hfo_contours_df)
-                elpi_hfo_detections_df.Type = f"spctHFO"
-
-                if len(elpi_hfo_detections_df)>0:
-                    write_elpi_file(elpi_hfo_detections_df, elpi_hfo_marks_fpath)
+        Args:
+            start_times: Array of interval start times
+            end_times: Array of interval end times
+            
+        Returns:
+            List of merged intervals as (start, end) tuples
+        """
+        if len(start_times) == 0:
+            return []
+        
+        # Create intervals and sort by start time
+        intervals = list(zip(start_times, end_times))
+        intervals.sort(key=lambda x: x[0])
+        
+        merged = [intervals[0]]
+        
+        for current_start, current_end in intervals[1:]:
+            last_start, last_end = merged[-1]
+            
+            # Check for overlap (including adjacent intervals)
+            if current_start <= last_end:
+                # Merge intervals by extending the end time
+                merged[-1] = (last_start, max(last_end, current_end))
             else:
-                print(f"No HFO detections found for {eeg_fn}. Skipping to next file.")
-                continue
+                # No overlap, add as new interval
+                merged.append((current_start, current_end))
+        
+        return merged
 
-        return
- 
+
 if __name__ == "__main__":
-   
-    # get dataset name and EEG filepaths
-    dataset_name, files_dict = StudiesInfo().ACH_27_Multidetect_SOZ_Study()
-    eeg_files_ls = np.flip(files_dict['PatName'])
-    eeg_data_path = files_dict['Filepath'][0].parent
-
-    # Define path where the characterized contour objects are found and where to store the generated processed data
-    characterized_data_path = Path(f"C:/Users/HFO/Documents/Postdoc_Calgary/Research/Characterized_Spectral_Blobs/1_Characterized_Objects_ACH_27_Multidetect_SOZ_Study/")
-    detector_results_path = Path(f"C:/Users/HFO/Documents/Postdoc_Calgary/Research/Spectral_HFO_SOZ_Prediction/ACH/ACH_HFO_Detections/")    
-    os.makedirs(detector_results_path, exist_ok=True)
-
-    # Create the detector object
-    detector = HFO_Detector(eeg_type='ib', 
-                            eeg_data_path=eeg_data_path, 
-                            eeg_filenames=eeg_files_ls, 
-                            characterized_data_path=characterized_data_path, 
-                            )
-
-    force_recalc = False
-
-    # best_performer_hfo_detections_filepath = detector_results_path 
-    # detector.load_models()
-    # detector.best_performer_hfo_detection(best_performer_hfo_detections_filepath, force_recalc)
-
-    # best_performer_hfo_detections_filepath = detector_results_path 
-    # detector.load_models()
-    # detector.auto_hfo_detection(best_performer_hfo_detections_filepath, force_recalc)
-
-    # best_performer_hfo_detections_filepath = detector_results_path 
-    # detector.load_models()
-    # detector.auto_hfo_characterize_channels(best_performer_hfo_detections_filepath, force_recalc)
 
     pass
