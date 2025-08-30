@@ -4,6 +4,7 @@ import pandas as pd
 import datetime
 import os
 import joblib
+import logging
 from pathlib import Path
 
 from hfo_spectral_detector.elpi.elpi_interface import load_elpi_file, write_elpi_file, get_agreement_between_elpi_files
@@ -12,6 +13,8 @@ from hfo_spectral_detector.eeg_io.eeg_io import EEG_IO
 
 from xgboost import XGBClassifier
 import xgboost as xgb
+
+logger = logging.getLogger(__name__)
 
 class HFO_Detector:
     def __init__(self, eeg_type:str="", output_path:str=None) -> None:
@@ -126,6 +129,9 @@ class HFO_Detector:
             tuple: (detected_hfo_contours_df, elpi_detections_df, output_file_path)
                    Returns None values if no detections found
         """
+        print("Running HFO detection...")
+        logger.info("Running HFO detection...")
+
         # Input validation
         if contour_objs_df is None or len(contour_objs_df) == 0:
             raise ValueError("Input DataFrame is empty or None")
@@ -138,7 +144,10 @@ class HFO_Detector:
         
         print(f"Classifier model: {self.classifier_model_fpath.stem}")
         print(f"Processing patient: {pat_name}")
-        
+
+        logger.info(f"Classifier model: {self.classifier_model_fpath.stem}")
+        logger.info(f"Processing patient: {pat_name}")
+
         # Clean DataFrame - remove unnamed columns efficiently
         unnamed_cols = contour_objs_df.columns[contour_objs_df.columns.str.contains('Unnamed')]
         if len(unnamed_cols) > 0:
@@ -171,7 +180,9 @@ class HFO_Detector:
         
         print(f"Processing {len(contours_to_detect_df)} contours after pre-filtering "
               f"(filtered out {np.sum(very_negative_sel)} obvious negatives)")
-        
+        logger.info(f"Processing {len(contours_to_detect_df)} contours after pre-filtering "
+                    f"(filtered out {np.sum(very_negative_sel)} obvious negatives)")
+
         # Feature scaling and prediction
         try:
             feature_matrix = contours_to_detect_df[self.feature_selection].to_numpy()
@@ -185,9 +196,11 @@ class HFO_Detector:
         detected_hfo_contours_df = contours_to_detect_df[positive_mask].reset_index(drop=True).copy()
         
         print(f"Detected {len(detected_hfo_contours_df)} HFO events from {len(contours_to_detect_df)} candidates")
+        logger.info(f"Detected {len(detected_hfo_contours_df)} HFO events from {len(contours_to_detect_df)} candidates")
         
         if len(detected_hfo_contours_df) == 0:
             print(f"No HFO detections found for {pat_name}")
+            logger.info(f"No HFO detections found for {pat_name}")
             return detected_hfo_contours_df, None, None
         
         # Convert to ELPI format
@@ -201,6 +214,7 @@ class HFO_Detector:
         
         if len(elpi_hfo_detections_df) == 0:
             print(f"No valid ELPI detections generated for {pat_name}")
+            logger.info(f"No valid ELPI detections generated for {pat_name}")
             return detected_hfo_contours_df, elpi_hfo_detections_df, None
         
         # Save results
@@ -210,6 +224,7 @@ class HFO_Detector:
         try:
             write_elpi_file(elpi_hfo_detections_df, elpi_hfo_marks_fpath)
             print(f"Saved {len(elpi_hfo_detections_df)} HFO detections to {elpi_hfo_marks_fpath}")
+            logger.info(f"Saved {len(elpi_hfo_detections_df)} HFO detections to {elpi_hfo_marks_fpath}")
         except Exception as e:
             raise RuntimeError(f"Error saving ELPI file: {str(e)}")
         
