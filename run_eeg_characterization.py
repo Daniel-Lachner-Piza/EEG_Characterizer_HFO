@@ -65,9 +65,9 @@ def run_eeg_characterization(dataset_name, files_dict, mtg_name, power_line_freq
             ANALYSIS_START_SAMPLE = ANALYSIS_START_S*fs
             wdw_duration_samples = int(1 * fs)
             step_samples = int(np.round(0.1 * fs))
-            #step_samples = int(np.round(1 * fs))
+            step_samples = int(np.round(1 * fs))
             ANALYSIS_END_SAMPLE = eeg_reader.n_samples
-            #ANALYSIS_END_SAMPLE = ANALYSIS_START_SAMPLE + 60*fs
+            ANALYSIS_END_SAMPLE = ANALYSIS_START_SAMPLE + 60*fs
 
             logger.info(pat_name)
             logger.info(f"EEG Duration: {eeg_reader.n_samples/fs} seconds")
@@ -133,46 +133,43 @@ if __name__ == "__main__":
     if test_mode:
         # Define Dataset name and data path
         dataset_name="PhysioTest_DLP"
-        data_path=Path("/home/dlp/Documents/Development/Data/Physio_EEG_Data/")
-        out_path=Path("/home/dlp/Documents/Development/Data/Test-DLP-Output/")
+        input_folder=Path("/home/dlp/Documents/Development/Data/Physio_EEG_Data/")
+        output_folder=Path("/home/dlp/Documents/Development/Data/Test-DLP-Output/")
         eeg_format="edf"
-        mtg_name="sb"
+        montage_type="sb"
         power_line_freqs=60
     else:
         parser = argparse.ArgumentParser(description='Characterize EEG to detect HFO')
-        parser.add_argument('--name', type=str, required=True, help='Name of the dataset')
-        parser.add_argument('--inpath', type=str, required=True, help='Path to directory containing EEG files')
-        parser.add_argument('--outpath', type=str, help='Path to the output directory')
-        parser.add_argument('--format', type=str, default="edf", help='File format of the EEG files (default: edf)')
-        parser.add_argument('--montage', type=str, required=True, help='Name of the montage (ib, ir, sb, sr)')
-        parser.add_argument('--plf', type=int, default=60, help='Frequency of POwer Lines')
+        parser.add_argument('--dataset_name', type=str, required=True, help='Name of the dataset')
+        parser.add_argument('--input_folder', type=str, required=True, help='Path to directory containing EEG files')
+        parser.add_argument('--output_folder', type=str, help='Path to the output directory')
+        parser.add_argument('--eeg_format', type=str, default="edf", help='File format of the EEG files (default: edf)')
+        parser.add_argument('--montage_type', type=str, required=True, help='Name of the montage (ib, ir, sb, sr)')
+        parser.add_argument('--power_line_freq', type=int, default=60, help='Frequency of POwer Lines')
 
         args = parser.parse_args()
 
-        dataset_name = args.name
-        data_path = Path(args.inpath)
-        eeg_format = args.format
-        out_path = Path(args.outpath)
-        mtg_name = args.montage
-        power_line_freqs = args.plf
-
-        # create out_path directory
-        #out_path.mkdir(parents=True, exist_ok=True)
+        dataset_name = args.dataset_name
+        input_folder = Path(args.input_folder)
+        output_folder = Path(args.output_folder)
+        eeg_format = args.eeg_format
+        montage_type = args.montage_type
+        power_line_freqs = args.power_line_freq
 
     print("socket.gethostname() = ", socket.gethostname())
     print(f"Number of CPUs: {os.cpu_count()}")
 
     print(f"Dataset = {str(dataset_name)}")
-    print(f"Input path = {str(data_path)}")
+    print(f"Input path = {str(input_folder)}")
     print(f"EEG format = {str(eeg_format)}")
-    print(f"Output path = {str(out_path)}")
+    print(f"Output path = {str(output_folder)}")
     if test_mode:
         print(f"Running Test Mode!")
 
     logger.info(f"Dataset = {str(dataset_name)}")
-    logger.info(f"Input path = {str(data_path)}")
+    logger.info(f"Input path = {str(input_folder)}")
     logger.info(f"EEG format = {str(eeg_format)}")
-    logger.info(f"Output path = {str(out_path)}")
+    logger.info(f"Output path = {str(output_folder)}")
     
     if test_mode:
         logger.info(f"Running test mode!")
@@ -184,7 +181,7 @@ if __name__ == "__main__":
     logger.info("Files to process:")
 
     files_dict = {'PatName': [], 'Filepath': []}
-    for path in data_path.glob(f"**/*.{eeg_format}"):
+    for path in input_folder.glob(f"**/*.{eeg_format}"):
         files_dict['Filepath'].append(path)
         files_dict['PatName'].append(path.stem)
 
@@ -192,4 +189,4 @@ if __name__ == "__main__":
         logger.info(f"{path.stem}")
 
 
-    run_eeg_characterization(dataset_name, files_dict, mtg_name, power_line_freqs, out_path)
+    run_eeg_characterization(dataset_name, files_dict, montage_type, power_line_freqs, output_folder)
