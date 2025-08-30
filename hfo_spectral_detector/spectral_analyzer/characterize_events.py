@@ -3,9 +3,8 @@ import time
 import numpy as np
 import pandas as pd
 import logging
-#import psutil
 import gc
-#import warnings
+from pathlib import Path
 
 import matplotlib as mpl
 #mpl.use("TkAgg")
@@ -29,7 +28,6 @@ from scipy.signal import firwin
 from scipy.ndimage import convolve1d
 
 import cv2
-import tkinter
 
 #from silx.math.colormap import apply_colormap
 from hfo_spectral_detector.spectral_analyzer.HFO_Spectral_Analyzer import hfo_spectral_analysis
@@ -84,13 +82,14 @@ def collect_chann_spec_events(pat_name: str, eeg_reader: EEG_IO, an_wdws_dict: d
     
     return all_ch_contours_df
 
-def characterize_events(pat_name: str, eeg_reader: EEG_IO, an_wdws_dict: dict, out_path:str=None, power_line_freqs:float=60, go_parallel:bool=True, force_recalc:bool=False, save_spect_img:bool=False):
+def characterize_events(pat_name: str, eeg_reader: EEG_IO, an_wdws_dict: dict, out_path:Path=None, power_line_freqs:float=60, go_parallel:bool=True, force_recalc:bool=False, save_spect_img:bool=False):
 
     print(f"{pat_name}\nCharacterize Events")
     assert power_line_freqs is not None, "Power line frequency is not defined!"
 
     new_out_path = out_path / pat_name
     os.makedirs(new_out_path, exist_ok=True)
+    print(f"Created output directory: {new_out_path}")
 
     all_ch_df_filepath = new_out_path / "All_Ch_Objects.parquet"
 

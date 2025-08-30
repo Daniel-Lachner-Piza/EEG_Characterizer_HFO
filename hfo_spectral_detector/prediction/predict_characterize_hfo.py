@@ -6,7 +6,6 @@ import os
 import joblib
 from pathlib import Path
 
-from hfo_spectral_detector.read_setup_eeg.montage_creator import MontageCreator
 from hfo_spectral_detector.elpi.elpi_interface import load_elpi_file, write_elpi_file, get_agreement_between_elpi_files
 from hfo_spectral_detector.studies_info.studies_info import StudiesInfo
 from hfo_spectral_detector.eeg_io.eeg_io import EEG_IO

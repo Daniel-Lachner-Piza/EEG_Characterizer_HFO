@@ -13,11 +13,11 @@
 #SBATCH --partition=bigmem
 
 ####### Set environment variables ###############
- . ~/Projects/EEG_Characterizer_HFO/activate.sh
+source ~/Projects/EEG_Characterizer_HFO/.venv/bin/activate
 echo $(which python)
 
 ####### Run your script #########################
-dataset_name=PhysioTest
+dataset_name=ACH_Physio_Scalp_Data
 eegfmt=edf
 mtg_name=sb
 power_line_frequency=60
@@ -38,5 +38,6 @@ for group in ${data_groups[@]}; do
     --output_folder "$oupath" \
     --eeg_format "$eegfmt" \
     --montage_type "$mtg_name" \
-    --power_line_freq "$power_line_frequency" \
+    --power_line_freq "$power_line_frequency"
 done
+echo "All jobs submitted."

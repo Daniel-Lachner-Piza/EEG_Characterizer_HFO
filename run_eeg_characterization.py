@@ -9,10 +9,7 @@ import mne
 import numpy as np
 
 from pathlib import Path
-#from hfo_spectral_detector.read_setup_eeg.montage_creator import MontageCreator
-#from hfo_spectral_detector.elpi.elpi_interface import load_elpi_file, write_elpi_file
 from hfo_spectral_detector.spectral_analyzer.characterize_events import characterize_events, collect_chann_spec_events
-#from hfo_spectral_detector.studies_info.studies_info import StudiesInfo
 from hfo_spectral_detector.eeg_io.eeg_io import EEG_IO
 from hfo_spectral_detector.prediction.predict_characterize_hfo import HFO_Detector
 
@@ -65,9 +62,9 @@ def run_eeg_characterization(dataset_name, files_dict, mtg_name, power_line_freq
             ANALYSIS_START_SAMPLE = ANALYSIS_START_S*fs
             wdw_duration_samples = int(1 * fs)
             step_samples = int(np.round(0.1 * fs))
-            step_samples = int(np.round(1 * fs))
+            #step_samples = int(np.round(1 * fs))
             ANALYSIS_END_SAMPLE = eeg_reader.n_samples
-            ANALYSIS_END_SAMPLE = ANALYSIS_START_SAMPLE + 60*fs
+            #ANALYSIS_END_SAMPLE = ANALYSIS_START_SAMPLE + 60*fs
 
             logger.info(pat_name)
             logger.info(f"EEG Duration: {eeg_reader.n_samples/fs} seconds")
@@ -135,6 +132,10 @@ if __name__ == "__main__":
         dataset_name="PhysioTest_DLP"
         input_folder=Path("/home/dlp/Documents/Development/Data/Physio_EEG_Data/")
         output_folder=Path("/home/dlp/Documents/Development/Data/Test-DLP-Output/")
+
+        input_folder=Path("/work/jacobs_lab/EEG_Data/AnonymPhysioEEGs/HFOHealthy1monto2yrs/")
+        output_folder=Path(f"/work/jacobs_lab/Output/Output_{dataset_name}/HFOHealthy1monto2yrs/")
+
         eeg_format="edf"
         montage_type="sb"
         power_line_freqs=60
@@ -154,7 +155,7 @@ if __name__ == "__main__":
         output_folder = Path(args.output_folder)
         eeg_format = args.eeg_format
         montage_type = args.montage_type
-        power_line_freqs = args.power_line_freq
+        power_line_freqs = int(args.power_line_freq)
 
     print("socket.gethostname() = ", socket.gethostname())
     print(f"Number of CPUs: {os.cpu_count()}")
