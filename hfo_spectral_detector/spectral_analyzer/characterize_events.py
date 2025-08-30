@@ -147,7 +147,10 @@ def channel_specific_characterization(pat_name: str, fs: float, screen_size:tupl
 
         # Detect Power Line Noise
         cmwt_freqs_emi, dcwt_emi = dcmwt(mtg_signal, fs, list(range(30, 120, 10)), nr_cycles=6)
-        apply_notch_filter =  cmwt_freqs_emi[np.argmax(np.mean(dcwt_emi, axis=1))] == power_line_freqs
+
+        apply_notch_filter=False
+        if power_line_freqs==50 or power_line_freqs==60:
+            apply_notch_filter =  cmwt_freqs_emi[np.argmax(np.mean(dcwt_emi, axis=1))] == power_line_freqs
 
         # Notch filter
         if apply_notch_filter:
