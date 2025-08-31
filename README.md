@@ -384,3 +384,9 @@ EEG_Characterizer_HFO/
 ├── pyproject.toml              # Project configuration
 └── README.md                   # This file
 ```
+
+# SLURM Filename Patterns Used:
+%u - Username
+%N - Node name
+%x - Job name (now includes username and node)
+%j - Job ID

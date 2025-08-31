@@ -1,6 +1,8 @@
 #!/bin/bash
 
-#SBATCH --job-name=frankfurt_clae_hfo_detection_job
+#SBATCH --job-name=hfo_detection_multifolder_job_%u_%j
+#SBATCH --output=~/Slurm_Logs/%x.out
+#SBATCH --error=~/Slurm_Logs/%x.err
 
 ####### Reserve computing resources #############
 #SBATCH --mail-user=daniel.lachnerpiza@ucalgary.ca
