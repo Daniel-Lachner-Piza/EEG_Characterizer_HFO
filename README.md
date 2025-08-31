@@ -122,51 +122,6 @@ python run_eeg_characterization.py \
   --plf $plf
 ```
 
-## Data Management
-
-### Data Transfer to HPC
-
-For transferring data to High-Performance Computing (HPC) systems using rsync:
-
-#### Prerequisites
-- **Windows**: Open a WSL (Windows Subsystem for Linux) terminal
-- **Linux/MacOS**: rsync should be available from your terminal
-
-#### Copy Entire Folder
-
-```bash
-source_path="/mnt/c/Users/HFO/Documents/Postdoc_Calgary/Research/Scalp_HFO_GoldStandard/"
-destination_path="daniel.lachnerpiza@arc.ucalgary.ca:/work/jacobs_lab/EEG_Data/Scalp_HFO_GoldStandard/"
-rsync -a --partial --progress "$source_path" "$destination_path"
-```
-
-#### Copy Specific File Types
-
-```bash
-groups_ls=(
-    "HFOHealthy1monto2yrs" 
-    "HFOHealthy3to5yrs" 
-    "HFOHealthy6to10yrs" 
-    "HFOHealthy11to13yrs" 
-    "HFOHealthy14to17yrs"
-)
-
-for group in ${groups_ls[@]}; do
-	source_path="/mnt/c/Users/HFO/Documents/Postdoc_Calgary/Research/Tatsuya/PhysioEEGs/Anonymized_EDFs/${group}"
-	destination_path="daniel.lachnerpiza@arc.ucalgary.ca:/work/jacobs_lab/EEG_Data/AnonymPhysioEEGs/${group}"
-	file_type="*/*.edf"    
-    rsync --relative --partial --progress ${source_path}${file_type} $destination_path
-done
-```
-
-### File Management Commands
-
-#### Check folder size and file count on HPC:
-
-```bash
-echo "Files: $(find . -type f | wc -l)"; echo "Total size: $(du -sh . | cut -f1)"
-```
-
 ## HPC Cluster Usage
 
 This section covers running the HFO detection jobs on the ARC High-Performance Computing (HPC) cluster from the UofC, which uses SLURM as the workload manager.
