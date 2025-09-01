@@ -20,9 +20,13 @@ echo $(which python)
 
 ####### Run your script #########################
 dataset_name=ACH_Physio_Scalp_Data
-eegfmt=edf
-mtg_name=sb
-power_line_frequency=60
+input_folder_base="/work/jacobs_lab/EEG_Data/AnonymPhysioEEGs/"
+output_folder_base="/work/jacobs_lab/Output/"
+eeg_format=edf
+montage_type=sb
+power_line_freq=60
+force_characterization="no"
+force_hfo_detection="yes"
 
 data_groups=(
     "HFOHealthy1monto2yrs" 
@@ -32,14 +36,16 @@ data_groups=(
     "HFOHealthy14to17yrs"
 )
 for group in ${data_groups[@]}; do
-  inpath="/work/jacobs_lab/EEG_Data/AnonymPhysioEEGs/${group}/"
-  oupath="/work/jacobs_lab/Output/Output_${dataset_name}/${group}/"
+  input_folder="${input_folder_base}${group}/"
+  output_folder="${output_folder_base}Output_${dataset_name}/${group}/"
   python ~/Projects/EEG_Characterizer_HFO/run_eeg_characterization.py \
     --dataset_name "$dataset_name" \
-    --input_folder "$inpath" \
-    --output_folder "$oupath" \
-    --eeg_format "$eegfmt" \
-    --montage_type "$mtg_name" \
-    --power_line_freq "$power_line_frequency"
+    --input_folder "$input_folder" \
+    --output_folder "$output_folder" \
+    --eeg_format "$eeg_format" \
+    --montage_type "$montage_type" \
+    --power_line_freq "$power_line_freq" \
+    --force_characterization "$force_characterization" \
+    --force_hfo_detection "$force_hfo_detection"
 done
-echo "All jobs submitted."
+echo "All processing completed."

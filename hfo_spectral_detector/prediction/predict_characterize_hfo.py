@@ -75,52 +75,7 @@ class HFO_Detector:
 
         return valid_obj_sel
 
-    def auto_hfo_detection(self, contour_objs_df):
-
-        # Get patient name
-        pat_name = contour_objs_df.Patient.unique()
-        assert len(pat_name)==1, "Features DataFrame contains more than one patient."
-
-        print("Classifier model: ", self.classifier_model_fpath.stem)
-        print(f"Processing {pat_name}")
-
-        # Check structure of data frame with contour objects
-        contour_objs_df = contour_objs_df.loc[:, ~contour_objs_df.columns.str.contains('Unnamed')]
-        assert len(contour_objs_df)>0, "No HFO objects found for this patient"
-        contour_objs_df = contour_objs_df.loc[:, ~contour_objs_df.columns.str.contains('Unnamed')]
-
-        # Add features describing the ratio between Event and Background
-        contour_objs_df['EventBkgrndRatio_Power'] = contour_objs_df['bp_sig_pow']/contour_objs_df['bkgrnd_sig_pow']
-        contour_objs_df['EventBkgrndRatio_StdDev'] = contour_objs_df['bp_sig_std']/contour_objs_df['bkgrnd_sig_std']
-        contour_objs_df['EventBkgrndRatio_Activity'] = contour_objs_df['bp_sig_activity']/contour_objs_df['bkgrnd_sig_activity']
-        contour_objs_df['EventBkgrndRatio_Mobility'] = contour_objs_df['bp_sig_avg_mobility']/contour_objs_df['bkgrnd_sig_avg_mobility']
-        contour_objs_df['EventBkgrndRatio_Complexity'] = contour_objs_df['bp_sig_complexity']/contour_objs_df['bkgrnd_sig_complexity']
-        
-        # # Detection of HFO contour objects
-        very_negative_sel = self.select_obvious_gs_negative_objs(contour_objs_df, 0)
-        contours_to_detect_df = contour_objs_df[np.logical_not(very_negative_sel)].reset_index(drop=True)
-
-        scaled_feat_vals = self.feat_scaler.transform(contours_to_detect_df[self.feature_selection].to_numpy())
-        y_pred = self.classifier_model.predict(scaled_feat_vals).ravel()
-
-        detected_hfo_contours_df = contours_to_detect_df[y_pred>0].reset_index(drop=True).copy()
-
-        if detected_hfo_contours_df.shape[0]> 0:
-            # Save the detected HFO contours to a new file
-            elpi_hfo_marks_fn = f"{pat_name}_hfo_detections.mat"
-            elpi_hfo_marks_fpath = self.output_path / elpi_hfo_marks_fn
-
-            elpi_hfo_detections_df = self.contour_objs_to_elpi(detected_hfo_contours_df)
-            elpi_hfo_detections_df.Type = f"spctHFO"
-
-            if len(elpi_hfo_detections_df)>0:
-                write_elpi_file(elpi_hfo_detections_df, elpi_hfo_marks_fpath)
-        else:
-            print(f"No HFO detections found for {pat_name}. Skipping to next file.")
-
-        return
-
-    def run_hfo_detection(self, contour_objs_df):
+    def run_hfo_detection(self, contour_objs_df, force_detection):
         """        
         Args:
             contour_objs_df: DataFrame containing contour object features
@@ -131,6 +86,18 @@ class HFO_Detector:
         """
         print("Running HFO detection...")
         logger.info("Running HFO detection...")
+
+        pat_names = contour_objs_df.Patient.unique()
+        assert len(pat_names) == 1, "DataFrame must contain exactly one patient"
+        pat_name = pat_names[0]
+
+        # Define output of elpi compatible files containing automatic HFO detections
+        elpi_hfo_marks_fn = f"{pat_name}_hfo_detections.mat"
+        elpi_hfo_marks_fpath = self.output_path / elpi_hfo_marks_fn
+
+        if os.path.isfile(elpi_hfo_marks_fpath) and not force_detection:
+            print(f"ELPI HFO marks file already exists: {elpi_hfo_marks_fpath}")
+            return None, None, elpi_hfo_marks_fpath
 
         # Input validation
         if contour_objs_df is None or len(contour_objs_df) == 0:
@@ -186,8 +153,10 @@ class HFO_Detector:
         # Feature scaling and prediction
         try:
             feature_matrix = contours_to_detect_df[self.feature_selection].to_numpy()
-            scaled_feat_vals = self.feat_scaler.transform(feature_matrix)
-            y_pred = self.classifier_model.predict(scaled_feat_vals).ravel()
+            X_Data = self.feat_scaler.transform(feature_matrix)
+            booster = self.classifier_model.get_booster()
+            y_pred = booster.predict(xgb.DMatrix(X_Data)).ravel()
+            y_pred = y_pred>=0.5
         except Exception as e:
             raise RuntimeError(f"Error during classification: {str(e)}")
         
@@ -216,11 +185,8 @@ class HFO_Detector:
             print(f"No valid ELPI detections generated for {pat_name}")
             logger.info(f"No valid ELPI detections generated for {pat_name}")
             return detected_hfo_contours_df, elpi_hfo_detections_df, None
-        
-        # Save results
-        elpi_hfo_marks_fn = f"{pat_name}_hfo_detections.mat"
-        elpi_hfo_marks_fpath = self.output_path / elpi_hfo_marks_fn
-        
+                
+        # Save HFO detections in Elpi format
         try:
             write_elpi_file(elpi_hfo_detections_df, elpi_hfo_marks_fpath)
             print(f"Saved {len(elpi_hfo_detections_df)} HFO detections to {elpi_hfo_marks_fpath}")
