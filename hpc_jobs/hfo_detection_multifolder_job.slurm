@@ -22,12 +22,11 @@ echo $(which python)
 dataset_name=ACH_Physio_Scalp_Data
 input_folder_base="/work/jacobs_lab/EEG_Data/AnonymPhysioEEGs/"
 output_folder_base="/work/jacobs_lab/Output/"
-eeg_format=edf
-montage_type=sb
-power_line_freq=60
-force_characterization="no"
-force_hfo_detection="yes"
-
+eeg_format=edf              # Tested formats: edf, vhdr(Brain Vision), dat(Persyst's laydat format) 
+montage_type=sb             # Scal bipolar: sb, Scalp referential: sr, iEEG bipolar: ib, iEEG referential: ir
+power_line_freq=60          # 60Hz = North America, 50Hz = Europe
+force_characterization="no" # Recalculate features even if files present
+force_hfo_detection="yes"   # Force HFO detection even if files present
 data_groups=(
     "HFOHealthy1monto2yrs" 
     "HFOHealthy3to5yrs" 
@@ -35,6 +34,7 @@ data_groups=(
     "HFOHealthy11to13yrs" 
     "HFOHealthy14to17yrs"
 )
+
 for group in ${data_groups[@]}; do
   input_folder="${input_folder_base}${group}/"
   output_folder="${output_folder_base}Output_${dataset_name}/${group}/"
