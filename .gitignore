@@ -17,6 +17,7 @@ hfo_spectral_detector/prediction/*.json
 *.log
 hfo_spectral_detector.log
 .out
+Slurm_Logs/*
 
 # VENV
 .venv/
