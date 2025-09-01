@@ -64,6 +64,19 @@ class HFO_Detector:
 
         pass
 
+    def fetch_all_channel_events(self, allch_events_fpath:str=None)->pd.DataFrame:
+
+        logger.info(f"\nFetch_all_chann_events")
+        print(f"\nFetch_all_chann_events")
+
+        try:
+            all_ch_contours_df = pd.read_parquet(allch_events_fpath)
+            return all_ch_contours_df
+        except Exception as e:
+            logger.error(f"Error reading {allch_events_fpath}: {e}")
+            return None
+
+
     def select_obvious_gs_negative_objs(self, gs_objs_df, fs):
 
         ################################################
@@ -75,21 +88,31 @@ class HFO_Detector:
 
         return valid_obj_sel
 
-    def run_hfo_detection(self, contour_objs_df, elpi_hfo_marks_fpath):
+    def run_hfo_detection(self, pat_name, allch_events_fpath:str=None, force_recalc:bool=False)->None:
         """        
         Args:
-            contour_objs_df: DataFrame containing contour object features
-            
+            allch_events_fpath: Path to the all-channel events file
+
         Returns:
             tuple: (detected_hfo_contours_df, elpi_detections_df, output_file_path)
                    Returns None values if no detections found
         """
+
         print("Running HFO detection...")
         logger.info("Running HFO detection...")
 
+        # Define output of elpi compatible file containing automatic HFO detections
+        elpi_fn = f"{pat_name}_hfo_detections.mat"
+        elpi_hfo_marks_fpath = self.output_path / elpi_fn
+        if os.path.isfile(elpi_hfo_marks_fpath) and not force_recalc:
+            print(f"ELPI HFO marks file already exists: {elpi_hfo_marks_fpath}")
+            logger.info(f"ELPI HFO marks file already exists: {elpi_hfo_marks_fpath}")
+            return
+        
+        contour_objs_df = self.fetch_all_channel_events(allch_events_fpath)
+
         pat_names = contour_objs_df.Patient.unique()
         assert len(pat_names) == 1, "DataFrame must contain exactly one patient"
-        pat_name = pat_names[0]
 
         # Input validation
         if contour_objs_df is None or len(contour_objs_df) == 0:

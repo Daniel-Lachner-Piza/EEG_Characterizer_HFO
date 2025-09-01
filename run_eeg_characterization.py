@@ -10,7 +10,7 @@ import mne
 import numpy as np
 
 from pathlib import Path
-from hfo_spectral_detector.spectral_analyzer.characterize_events import characterize_events, collect_chann_spec_events
+from hfo_spectral_detector.spectral_analyzer.characterize_events import characterize_events
 from hfo_spectral_detector.eeg_io.eeg_io import EEG_IO
 from hfo_spectral_detector.prediction.predict_characterize_hfo import HFO_Detector
 
@@ -136,20 +136,10 @@ def run_eeg_characterization(cfg: Characterization_Config, test_mode: bool = Fal
                 "force_recalc":cfg.force_characterization.lower()=="yes",
                 "save_spect_img":SAVE_SPECT_IMAGE,
             }
-            characterize_events(**params)
-
-
-            # Define output of elpi compatible files containing automatic HFO detections
-            elpi_fn = f"{pat_name}_hfo_detections.mat"
-            elpi_hfo_marks_fpath = detector.output_path / elpi_fn
-            if os.path.isfile(elpi_hfo_marks_fpath) and cfg.force_hfo_detection.lower()=="no":
-                print(f"ELPI HFO marks file already exists: {elpi_hfo_marks_fpath}")
-                logger.info(f"ELPI HFO marks file already exists: {elpi_hfo_marks_fpath}")
-                continue
-
-            contour_objs_df = collect_chann_spec_events(**params)
+            allch_events_fpath = characterize_events(**params)
+            
             detector.set_fs(fs)
-            detector.run_hfo_detection(contour_objs_df, elpi_hfo_marks_fpath)
+            detector.run_hfo_detection(pat_name, allch_events_fpath, force_recalc=cfg.force_hfo_detection.lower()=="yes")
 
         except Exception as e:
             logger.error(f"Error processing {pat_name}: {e}")
@@ -180,8 +170,8 @@ if __name__ == "__main__":
                 self.eeg_format="edf"
                 self.montage_type="sb"
                 self.power_line_freq=60
-                self.force_characterization="No"
-                self.force_hfo_detection="Yes"
+                self.force_characterization="yes"
+                self.force_hfo_detection="yes"
         args = args()
     else:
         parser = argparse.ArgumentParser(description='Characterize EEG to detect HFO')

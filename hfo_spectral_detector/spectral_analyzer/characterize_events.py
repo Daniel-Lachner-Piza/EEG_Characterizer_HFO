@@ -49,38 +49,30 @@ CPU_COUNT = os.cpu_count()
 def scale_array(arr):
     return (arr-min(arr)) / (np.max(arr)-np.min(arr))
 
-def collect_chann_spec_events(pat_name: str, eeg_reader: EEG_IO, an_wdws_dict: dict, out_path:str=None, power_line_freqs:float=None, go_parallel:bool=True, force_recalc:bool=False, save_spect_img:bool=False)->pd.DataFrame:
+def save_all_channel_events(pat_name: str, mtg_labels:list, out_path:str=None, all_ch_df_filepath:str=None)->str:
 
-    logger.info(f"{pat_name}\ncollect_chann_spec_events")
-    print(f"{pat_name}\ncollect_chann_spec_events")
+    logger.info(f"{pat_name}\nSave_all_chann_spec_events")
+    print(f"{pat_name}\nSave_all_chann_spec_events")
 
-    all_ch_df_filepath = out_path / f"{pat_name}_All_Ch_Objects.parquet"
-    if os.path.isfile(all_ch_df_filepath) and  not force_recalc:
-        all_ch_contours_df = pd.read_parquet(all_ch_df_filepath)
-        return all_ch_contours_df
-
-    new_out_path = out_path / pat_name
-    os.makedirs(new_out_path, exist_ok=True)
-    mtg_labels = eeg_reader.ch_names
     ch_objs_ls = []
     for i, mtg in enumerate(mtg_labels):
 
-        ch_df_filepath = new_out_path / mtg / f"{pat_name}_{mtg}_objects.parquet"
+        ch_df_filepath = out_path / pat_name / mtg / f"{pat_name}_{mtg}_objects.parquet"
         ch_contours_df = pd.read_parquet(ch_df_filepath)
         if len(ch_contours_df)>0:
             ch_objs_ls.append(ch_contours_df)
         else:
             pass
-        logger.info(f"Collecting {pat_name} --- {mtg} --- Progress: {i}/{len(mtg_labels)} --- {(i+1)/len(mtg_labels)*100:.2f}%")
-        print(f"Collecting {pat_name} --- {mtg} --- Progress: {i}/{len(mtg_labels)} --- {(i+1)/len(mtg_labels)*100:.2f}%")
-        
+        logger.info(f"Saving {pat_name} --- {mtg} --- Progress: {i}/{len(mtg_labels)} --- {(i+1)/len(mtg_labels)*100:.2f}%")
+        print(f"Saving {pat_name} --- {mtg} --- Progress: {i}/{len(mtg_labels)} --- {(i+1)/len(mtg_labels)*100:.2f}%")
+
     if len(ch_objs_ls)>0:
         logger.info(f"Saving {all_ch_df_filepath}")
         print(f"Saving {all_ch_df_filepath}")
         all_ch_contours_df = pd.concat(ch_objs_ls, ignore_index=True)
         all_ch_contours_df.to_parquet(all_ch_df_filepath, index=False)
     
-    return all_ch_contours_df
+    return all_ch_df_filepath
 
 def characterize_events(pat_name: str, eeg_reader: EEG_IO, an_wdws_dict: dict, out_path:Path=None, power_line_freqs:float=60, go_parallel:bool=True, force_recalc:bool=False, save_spect_img:bool=False):
 
@@ -94,15 +86,14 @@ def characterize_events(pat_name: str, eeg_reader: EEG_IO, an_wdws_dict: dict, o
     all_ch_df_filepath = new_out_path / "All_Ch_Objects.parquet"
 
     if os.path.isfile(all_ch_df_filepath) and  not force_recalc:
-        return
-
+        return all_ch_df_filepath
 
     if go_parallel:
         save_spect_img = False
+
     screen_size = (20.0, 11.0)
     mtg_labels = eeg_reader.ch_names
     mtg_signals = eeg_reader.get_data()
-    ch_objs_ls = []
     for i, mtg in enumerate(mtg_labels):   
         try:
             start_time = time.time()
@@ -128,6 +119,9 @@ def characterize_events(pat_name: str, eeg_reader: EEG_IO, an_wdws_dict: dict, o
             print(f"Error in channel {mtg}: {e}")
             #return
 
+    save_all_channel_events(pat_name, mtg_labels, out_path, all_ch_df_filepath)
+
+    return all_ch_df_filepath
 
 def channel_specific_characterization(pat_name: str, fs: float, screen_size:tuple, mtg_signal: np.ndarray, mtg: str, an_wdws_dict: dict, out_path:str, power_line_freqs:float=60, go_parallel:bool=True, force_recalc:bool=False, save_spect_img:bool=False):
 
