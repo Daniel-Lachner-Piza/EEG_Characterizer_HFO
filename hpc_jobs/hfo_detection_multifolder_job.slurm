@@ -26,7 +26,7 @@ eeg_format=edf              # Tested formats: edf, vhdr(Brain Vision), dat(Persy
 montage_type=sb             # Scal bipolar: sb, Scalp referential: sr, iEEG bipolar: ib, iEEG referential: ir
 power_line_freq=60          # 60Hz = North America, 50Hz = Europe
 force_characterization="no" # Recalculate features even if files present
-force_hfo_detection="yes"   # Force HFO detection even if files present
+force_hfo_detection="no"   # Force HFO detection even if files present
 data_groups=(
     "HFOHealthy1monto2yrs" 
     "HFOHealthy3to5yrs" 

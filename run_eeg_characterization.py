@@ -137,10 +137,19 @@ def run_eeg_characterization(cfg: Characterization_Config, test_mode: bool = Fal
                 "save_spect_img":SAVE_SPECT_IMAGE,
             }
             characterize_events(**params)
+
+
+            # Define output of elpi compatible files containing automatic HFO detections
+            elpi_fn = f"{pat_name}_hfo_detections.mat"
+            elpi_hfo_marks_fpath = detector.output_path / elpi_fn
+            if os.path.isfile(elpi_hfo_marks_fpath) and cfg.force_hfo_detection.lower()=="no":
+                print(f"ELPI HFO marks file already exists: {elpi_hfo_marks_fpath}")
+                logger.info(f"ELPI HFO marks file already exists: {elpi_hfo_marks_fpath}")
+                continue
+
             contour_objs_df = collect_chann_spec_events(**params)
-            
             detector.set_fs(fs)
-            detector.run_hfo_detection(contour_objs_df, cfg.force_hfo_detection.lower()=="no")
+            detector.run_hfo_detection(contour_objs_df, elpi_hfo_marks_fpath)
 
         except Exception as e:
             logger.error(f"Error processing {pat_name}: {e}")

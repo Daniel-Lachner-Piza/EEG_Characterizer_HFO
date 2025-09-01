@@ -17,7 +17,7 @@ import xgboost as xgb
 logger = logging.getLogger(__name__)
 
 class HFO_Detector:
-    def __init__(self, eeg_type:str="", output_path:str=None) -> None:
+    def __init__(self, eeg_type:str="", output_path:Path=Path(Path(os.path.dirname(__file__)))) -> None:
 
         assert eeg_type in ['sr', 'sb', 'ir', 'ib'], "EEG type must be one of 'sr', 'sb', 'ir', or 'ib'."
 
@@ -75,7 +75,7 @@ class HFO_Detector:
 
         return valid_obj_sel
 
-    def run_hfo_detection(self, contour_objs_df, force_detection):
+    def run_hfo_detection(self, contour_objs_df, elpi_hfo_marks_fpath):
         """        
         Args:
             contour_objs_df: DataFrame containing contour object features
@@ -90,14 +90,6 @@ class HFO_Detector:
         pat_names = contour_objs_df.Patient.unique()
         assert len(pat_names) == 1, "DataFrame must contain exactly one patient"
         pat_name = pat_names[0]
-
-        # Define output of elpi compatible files containing automatic HFO detections
-        elpi_hfo_marks_fn = f"{pat_name}_hfo_detections.mat"
-        elpi_hfo_marks_fpath = self.output_path / elpi_hfo_marks_fn
-
-        if os.path.isfile(elpi_hfo_marks_fpath) and not force_detection:
-            print(f"ELPI HFO marks file already exists: {elpi_hfo_marks_fpath}")
-            return None, None, elpi_hfo_marks_fpath
 
         # Input validation
         if contour_objs_df is None or len(contour_objs_df) == 0:
