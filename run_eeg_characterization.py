@@ -37,11 +37,12 @@ def timing_context(operation_name: str, logger: logging.Logger):
 
 def init_logging() -> logging.Logger:
     """Initialize logging configuration and return logger instance."""
-    logger = logging.getLogger(__name__)
+    # Configure the root logger so all child loggers inherit the configuration
+    root_logger = logging.getLogger()
     
-    # Avoid duplicate handlers if logger already configured
-    if logger.handlers:
-        return logger
+    # Avoid duplicate handlers if root logger already configured
+    if root_logger.handlers:
+        return logging.getLogger(__name__)
         
     log_fpath = Path(__file__).parent / "logs" / "hfo_spectral_detector.log"
     os.makedirs(log_fpath.parent, exist_ok=True)
@@ -59,11 +60,13 @@ def init_logging() -> logging.Logger:
     console_handler.setFormatter(formatter)
     console_handler.setLevel(logging.WARNING)
     
-    logger.addHandler(file_handler)
-    logger.addHandler(console_handler)
-    logger.setLevel(logging.INFO)
+    # Configure root logger so all child loggers inherit these handlers
+    root_logger.addHandler(file_handler)
+    root_logger.addHandler(console_handler)
+    root_logger.setLevel(logging.INFO)
     
-    return logger
+    # Return logger for this module
+    return logging.getLogger(__name__)
 
 
 class Characterization_Config:
