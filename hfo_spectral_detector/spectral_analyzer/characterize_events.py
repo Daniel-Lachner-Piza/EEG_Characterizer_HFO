@@ -74,7 +74,7 @@ def save_all_channel_events(pat_name: str, mtg_labels:list, out_path:str=None, a
     
     return all_ch_df_filepath
 
-def characterize_events(pat_name: str, eeg_reader: EEG_IO, an_wdws_dict: dict, out_path:Path=None, power_line_freqs:float=60, go_parallel:bool=True, force_recalc:bool=False, save_spect_img:bool=False):
+def characterize_events(pat_name: str, eeg_reader: EEG_IO, an_wdws_dict: dict, out_path:Path=None, power_line_freqs:float=60, n_jobs:int=-1, force_recalc:bool=False, save_spect_img:bool=False):
 
     print(f"{pat_name}\nCharacterize Events")
     assert power_line_freqs is not None, "Power line frequency is not defined!"
@@ -88,7 +88,7 @@ def characterize_events(pat_name: str, eeg_reader: EEG_IO, an_wdws_dict: dict, o
     if os.path.isfile(all_ch_df_filepath) and  not force_recalc:
         return all_ch_df_filepath
 
-    if go_parallel:
+    if n_jobs > 1:
         save_spect_img = False
 
     screen_size = (20.0, 11.0)
@@ -109,7 +109,7 @@ def characterize_events(pat_name: str, eeg_reader: EEG_IO, an_wdws_dict: dict, o
                 mtg=mtg, an_wdws_dict=an_wdws_dict, \
                 out_path=new_out_path, \
                 power_line_freqs=power_line_freqs, \
-                go_parallel=go_parallel, force_recalc=force_recalc, save_spect_img=save_spect_img\
+                n_jobs=n_jobs, force_recalc=force_recalc, save_spect_img=save_spect_img\
                 )
 
             logger.info(f"{pat_name} --- {mtg} --- ProcessingTime: {time.time()-start_time} --- Progress: {i+1}/{len(mtg_labels)} --- {(i+1)/len(mtg_labels)*100:.2f}%")
@@ -123,7 +123,7 @@ def characterize_events(pat_name: str, eeg_reader: EEG_IO, an_wdws_dict: dict, o
 
     return all_ch_df_filepath
 
-def channel_specific_characterization(pat_name: str, fs: float, screen_size:tuple, mtg_signal: np.ndarray, mtg: str, an_wdws_dict: dict, out_path:str, power_line_freqs:float=60, go_parallel:bool=True, force_recalc:bool=False, save_spect_img:bool=False):
+def channel_specific_characterization(pat_name: str, fs: float, screen_size:tuple, mtg_signal: np.ndarray, mtg: str, an_wdws_dict: dict, out_path:str, power_line_freqs:float=60, n_jobs:int=-1, force_recalc:bool=False, save_spect_img:bool=False):
 
     logger.info(f"channel_specific_characterization:{mtg}")
     print(f"channel_specific_characterization:{mtg}")
@@ -182,9 +182,9 @@ def channel_specific_characterization(pat_name: str, fs: float, screen_size:tupl
 
         wdw_objects_feats_ls = []
         tot_nr_contour_objs = 0
-        n_jobs = int(CPU_COUNT*1.0)
-        if not go_parallel:
-            n_jobs = 1
+
+        if n_jobs < 1:
+            n_jobs = int(CPU_COUNT*1.0)
 
         logger.info(f"Using {n_jobs} parallel jobs")
         print(f"Using {n_jobs} parallel jobs")

@@ -1,4 +1,3 @@
-from logging import config
 import sys
 import os
 #sys.path.append(os.path.dirname(__file__))
@@ -27,6 +26,8 @@ def init_logging():
     )
     return logger
 
+logger = init_logging()
+
 class Characterization_Config():
     def __init__(self, args):
 
@@ -36,8 +37,13 @@ class Characterization_Config():
         self.eeg_format = args.eeg_format
         self.montage_type = args.montage_type
         self.power_line_freqs = int(args.power_line_freq)
+        self.start_sec=args.start_sec
+        self.end_sec=args.end_sec
+        self.wdw_step_s=args.wdw_step_s
         self.force_characterization=args.force_characterization
         self.force_hfo_detection=args.force_hfo_detection
+        self.n_jobs=args.n_jobs
+
 
     def display_config(self):
         print(f"Dataset = {str(self.dataset_name)}")
@@ -60,12 +66,12 @@ class Characterization_Config():
         logger.info(f"Force HFO detection = {str(self.force_hfo_detection)}")
 
 class InputDataExtractor:
-    def __init__(self, config: Characterization_Config):
-        self.config = config
+    def __init__(self, cfg: Characterization_Config):
+        self.cfg = cfg
 
     def get_files_to_process(self):
         # Get the filepaths from the EEG files in the input folder
-        eeg_input_files_ls = list(self.config.input_folder.glob(f"**/*.{self.config.eeg_format}"))
+        eeg_input_files_ls = list(self.cfg.input_folder.glob(f"**/*.{self.cfg.eeg_format}"))
         return eeg_input_files_ls
 
     def display_files_to_process(self):
@@ -77,7 +83,7 @@ class InputDataExtractor:
         for f in files:
             logger.info(f"EEG File to process: {f}")
 
-def run_eeg_characterization(cfg: Characterization_Config, test_mode: bool = False):
+def run_eeg_characterization(cfg: Characterization_Config, files_to_process: list):
 
     os.makedirs(cfg.output_folder, exist_ok=True)
 
@@ -86,7 +92,6 @@ def run_eeg_characterization(cfg: Characterization_Config, test_mode: bool = Fal
     detector = HFO_Detector(eeg_type=cfg.montage_type, output_path=detector_results_path)
     detector.load_models()
 
-    files_to_process = data_extractor.get_files_to_process()
     for eeg_fpath in files_to_process:
         
         # Read EEG Data
@@ -94,36 +99,37 @@ def run_eeg_characterization(cfg: Characterization_Config, test_mode: bool = Fal
         try:
         
             eeg_reader = EEG_IO(eeg_filepath=eeg_fpath, mtg_t=cfg.montage_type)
+            fs = eeg_reader.fs
             eeg_reader.remove_natus_virtual_channels()
             assert eeg_reader.fs > 1000, "Sampling Rate is under 1000 Hz!"
 
             # Define time windows to use for spectral analysis
-            fs = eeg_reader.fs
-            ANALYSIS_START_S = 1
-            ANALYSIS_START_SAMPLE = ANALYSIS_START_S*fs
-            wdw_duration_samples = int(1 * fs)
-            step_samples = int(np.round(0.1 * fs))
-            ANALYSIS_END_SAMPLE = eeg_reader.n_samples
+            WDW_LENGTH_SAMPLES = int(1 * fs)
             GO_PARALLEL = True
             SAVE_SPECT_IMAGE = False
-            if test_mode:
-                step_samples = int(np.round(1 * fs))
-                ANALYSIS_END_SAMPLE = ANALYSIS_START_SAMPLE + 60*fs
+
+            analysis_start_sample = cfg.start_sec*fs
+            analysis_end_sample = eeg_reader.n_samples
+            if cfg.end_sec>0:
+                analysis_end_sample = cfg.end_sec*fs                
+            wdw_step_samples = int(np.round(cfg.wdw_step_s * fs))
 
             logger.info(pat_name)
             logger.info(f"EEG Duration: {eeg_reader.n_samples/fs} seconds")
             logger.info(f"EEG Sampling Rate: {eeg_reader.fs} Hz")
-            logger.info(f"EEG Nr. Samples: {eeg_reader.n_samples} samples")            
-            logger.info(f"ANALYSIS_START_SAMPLE Sample: {ANALYSIS_START_SAMPLE}")
-            logger.info(f"ANALYSIS_END_SAMPLE Sample: {ANALYSIS_END_SAMPLE}")
+            logger.info(f"EEG Nr. Samples: {eeg_reader.n_samples} samples")
+            logger.info(f"Analysis start second: {cfg.start_sec}")
+            logger.info(f"Analysis end second: {cfg.end_sec}")
+            logger.info(f"Analysis start sample: {analysis_start_sample}")
+            logger.info(f"Analysis end sample: {analysis_end_sample}")
             logger.info(f"Nr. Channels: {len(eeg_reader.ch_names)}")
             logger.info(f"{eeg_reader.ch_names}\n")
 
             an_wdws_dict = {'start':[], 'end':[]}
-            an_wdws_dict['start'] = np.array(np.arange(ANALYSIS_START_SAMPLE, ANALYSIS_END_SAMPLE-wdw_duration_samples+1, step_samples).tolist()).astype(int)
-            an_wdws_dict['end'] =  an_wdws_dict['start'] + wdw_duration_samples
+            an_wdws_dict['start'] = np.array(np.arange(analysis_start_sample, analysis_end_sample-WDW_LENGTH_SAMPLES+1, wdw_step_samples).tolist()).astype(int)
+            an_wdws_dict['end'] =  an_wdws_dict['start'] + WDW_LENGTH_SAMPLES
             assert sum( an_wdws_dict['start']<0)==0, "Incorrectly defined analysis window start samples"
-            assert sum(an_wdws_dict['end']>ANALYSIS_END_SAMPLE)==0, "Incorrectly defined analysis window end samples"
+            assert sum(an_wdws_dict['end']>analysis_end_sample)==0, "Incorrectly defined analysis window end samples"
 
             # Obtain the feature characterizing each time window
             params = {
@@ -132,12 +138,12 @@ def run_eeg_characterization(cfg: Characterization_Config, test_mode: bool = Fal
                 "an_wdws_dict": an_wdws_dict,
                 "out_path": cfg.output_folder,
                 "power_line_freqs":cfg.power_line_freqs,
-                "go_parallel":GO_PARALLEL,
+                "n_jobs":cfg.n_jobs,
                 "force_recalc":cfg.force_characterization.lower()=="yes",
                 "save_spect_img":SAVE_SPECT_IMAGE,
             }
+
             allch_events_fpath = characterize_events(**params)
-            
             detector.set_fs(fs)
             detector.run_hfo_detection(pat_name, allch_events_fpath, force_recalc=cfg.force_hfo_detection.lower()=="yes")
 
@@ -151,8 +157,6 @@ def run_eeg_characterization(cfg: Characterization_Config, test_mode: bool = Fal
     pass
 
 if __name__ == "__main__":
-
-    logger = init_logging()
 
     # Automatically enable test mode when running in debugger or no arguments passed
     test_mode = sys.gettrace() is not None or len(sys.argv) == 1
@@ -172,6 +176,11 @@ if __name__ == "__main__":
                 self.power_line_freq=60
                 self.force_characterization="yes"
                 self.force_hfo_detection="yes"
+                self.start_sec=0.0
+                self.end_sec=60.0
+                self.wdw_step_s=1.0
+                self.n_jobs=-1
+
         args = args()
     else:
         parser = argparse.ArgumentParser(description='Characterize EEG to detect HFO')
@@ -181,13 +190,17 @@ if __name__ == "__main__":
         parser.add_argument('--eeg_format', type=str, default="edf", help='File format of the EEG files (default: edf)')
         parser.add_argument('--montage_type', type=str, required=True, help='Name of the montage (ib, ir, sb, sr)')
         parser.add_argument('--power_line_freq', type=int, default=60, help='Frequency of Power Lines')
+        parser.add_argument('--start_sec', type=float, default=0, help='Start analysis from a specific second, defailt is 0')
+        parser.add_argument('--end_sec', type=float, default=-1, help='End analysis from a specific second, -1 is full length')
+        parser.add_argument('--wdw_step_s', type=float, default=0.1, help='Window step size in seconds, default is 0.1')
         parser.add_argument('--force_characterization', type=str, default="no", help='Force recalculation of features')
         parser.add_argument('--force_hfo_detection', type=str, default="yes", help='Force HFO detection')
+        parser.add_argument('--n_jobs', type=int, default=-1, help='Number of jobs to run in parallel, -1 uses all CPU cores')
 
         args = parser.parse_args()
 
-    config = Characterization_Config(args)
-    data_extractor = InputDataExtractor(config)
+    cfg = Characterization_Config(args)
+    data_extractor = InputDataExtractor(cfg)
     files_to_process = data_extractor.get_files_to_process()
 
     run_mode_str = "Running normal mode"
@@ -201,10 +214,10 @@ if __name__ == "__main__":
     logger.info(f"socket.gethostname() = {socket.gethostname()}")
     logger.info(f"Number of CPUs: {os.cpu_count()}")
 
-    config.display_config()
-    config.log_config(logger)
+    cfg.display_config()
+    cfg.log_config(logger)
 
     data_extractor.display_files_to_process()
     data_extractor.log_files_to_process(logger)
 
-    run_eeg_characterization(config, test_mode)
+    run_eeg_characterization(cfg, files_to_process)
