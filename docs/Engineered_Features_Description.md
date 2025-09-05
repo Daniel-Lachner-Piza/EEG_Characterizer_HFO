@@ -75,8 +75,8 @@ The characterization process involves:
 ### 4. Sinusoidal Correlation Features
 
 #### `max_hfo_sine_corr` (Maximum HFO Sinusoidal Correlation)
-- **Description**: Maximum correlation between the bandpass signal and sinusoidal templates
-- **Calculation**: Max correlation across frequencies and phase shifts: `max(corrcoef(sine_template, bp_signal))`
+- **Description**: Maximum Pearson correlation between the bandpass signal and sinusoidal templates
+- **Calculation**: Max Pearson correlation across frequencies and phase shifts: `max(corrcoef(sine_template, bp_signal))`
 - **Range**: [0, 1]
 - **Interpretation**: Higher values (>0.7) suggest more sinusoidal, rhythmic oscillations typical of genuine HFOs.
 
