@@ -1,8 +1,8 @@
 #!/bin/bash
 
 #SBATCH --job-name=hfo_detection_multifolder_job_%u_%j
-#SBATCH --output=~/Slurm_Logs/%x.out
-#SBATCH --error=~/Slurm_Logs/%x.err
+#SBATCH --output=~/Slurm_Logs/hfo_detection_multifolder_job_%u_%j.out
+#SBATCH --error=~/Slurm_Logs/hfo_detection_multifolder_job_%u_%j.err
 
 ####### Reserve computing resources #############
 #SBATCH --mail-user=daniel.lachnerpiza@ucalgary.ca

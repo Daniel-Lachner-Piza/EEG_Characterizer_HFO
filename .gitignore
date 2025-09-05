@@ -22,4 +22,6 @@ hfo_spectral_detector.log
 # VENV
 .venv/
 *.out
+hpc_jobs/~/Slurm_Logs/*.err
+hpc_jobs/~/Slurm_Logs/*.out
 docs/Python_Logging_Guide.md
