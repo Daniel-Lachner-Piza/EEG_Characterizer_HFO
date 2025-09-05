@@ -12,17 +12,11 @@ mpl.use("Agg")
 # To avoid UserWarning: Starting a Matplotlib GUI outside of the main thread will likely fail
 # Agg, is a non-interactive backend that can only write to files. 
 # #For more information and other ways of solving it see https://matplotlib.org/stable/users/explain/backends.html
-import matplotlib
-import matplotlib.colors as mplib_colors
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
-import matplotlib.cm as cm
-from matplotlib.backends.backend_agg import FigureCanvasAgg
-from matplotlib import cm
 
 #matplotlib.use('agg')
 
-from collections import defaultdict
 from joblib import Parallel, delayed
 from scipy.signal import firwin
 from scipy.ndimage import convolve1d
@@ -34,7 +28,6 @@ from hfo_spectral_detector.spectral_analyzer.HFO_Spectral_Analyzer import hfo_sp
 
 from hfo_spectral_detector.dsp.cwt import dcmwt
 from hfo_spectral_detector.spectral_analyzer.get_bp_features import get_bp_features
-from hfo_spectral_detector.spectral_analyzer.get_other_spectral_features import get_other_spectral_features
 from hfo_spectral_detector.eeg_io.eeg_io import EEG_IO
 
 
@@ -49,10 +42,11 @@ CPU_COUNT = os.cpu_count()
 def scale_array(arr):
     return (arr-min(arr)) / (np.max(arr)-np.min(arr))
 
-def save_all_channel_events(pat_name: str, mtg_labels:list, out_path:str=None, all_ch_df_filepath:str=None)->str:
+def save_all_channel_events(pat_name: str, mtg_labels:list, out_path:str=None, all_ch_df_filepath:str=None, verbose:bool=False)->str:
 
     logger.info(f"{pat_name}\nSave_all_chann_spec_events")
-    print(f"{pat_name}\nSave_all_chann_spec_events")
+    if verbose:
+        print(f"{pat_name}\nSave_all_chann_spec_events")
 
     ch_objs_ls = []
     for i, mtg in enumerate(mtg_labels):
@@ -64,24 +58,29 @@ def save_all_channel_events(pat_name: str, mtg_labels:list, out_path:str=None, a
         else:
             pass
         logger.info(f"Saving {pat_name} --- {mtg} --- Progress: {i}/{len(mtg_labels)} --- {(i+1)/len(mtg_labels)*100:.2f}%")
-        print(f"Saving {pat_name} --- {mtg} --- Progress: {i}/{len(mtg_labels)} --- {(i+1)/len(mtg_labels)*100:.2f}%")
+        if verbose:
+            print(f"Saving {pat_name} --- {mtg} --- Progress: {i}/{len(mtg_labels)} --- {(i+1)/len(mtg_labels)*100:.2f}%")
 
     if len(ch_objs_ls)>0:
         logger.info(f"Saving {all_ch_df_filepath}")
-        print(f"Saving {all_ch_df_filepath}")
+        if verbose:
+            print(f"Saving {all_ch_df_filepath}")
         all_ch_contours_df = pd.concat(ch_objs_ls, ignore_index=True)
         all_ch_contours_df.to_parquet(all_ch_df_filepath, index=False)
     
     return all_ch_df_filepath
 
-def characterize_events(pat_name: str, eeg_reader: EEG_IO, an_wdws_dict: dict, out_path:Path=None, power_line_freqs:float=60, n_jobs:int=-1, force_recalc:bool=False, save_spect_img:bool=False):
-
-    print(f"{pat_name}\nCharacterize Events")
+def characterize_events(pat_name: str, eeg_reader: EEG_IO, an_wdws_dict: dict, out_path:Path=None, power_line_freqs:float=60, n_jobs:int=-1, force_recalc:bool=False, save_spect_img:bool=False, verbose:bool=False)->str:
+    
+    logger.info(f"{pat_name}\nCharacterize Events")
+    if verbose:
+        print(f"{pat_name}\nCharacterize Events")
     assert power_line_freqs is not None, "Power line frequency is not defined!"
 
     new_out_path = out_path / pat_name
     os.makedirs(new_out_path, exist_ok=True)
-    print(f"Created output directory: {new_out_path}")
+    if verbose:
+        print(f"Created output directory: {new_out_path}")
 
     all_ch_df_filepath = new_out_path / "All_Ch_Objects.parquet"
 
@@ -109,24 +108,28 @@ def characterize_events(pat_name: str, eeg_reader: EEG_IO, an_wdws_dict: dict, o
                 mtg=mtg, an_wdws_dict=an_wdws_dict, \
                 out_path=new_out_path, \
                 power_line_freqs=power_line_freqs, \
-                n_jobs=n_jobs, force_recalc=force_recalc, save_spect_img=save_spect_img\
+                n_jobs=n_jobs, force_recalc=force_recalc, save_spect_img=save_spect_img, \
+                verbose=verbose\
                 )
 
             logger.info(f"{pat_name} --- {mtg} --- ProcessingTime: {time.time()-start_time} --- Progress: {i+1}/{len(mtg_labels)} --- {(i+1)/len(mtg_labels)*100:.2f}%")
-            print(f"{pat_name} --- {mtg} --- ProcessingTime: {time.time()-start_time} --- Progress: {i+1}/{len(mtg_labels)} --- {(i+1)/len(mtg_labels)*100:.2f}%")
+            if verbose:
+                print(f"{pat_name} --- {mtg} --- ProcessingTime: {time.time()-start_time} --- Progress: {i+1}/{len(mtg_labels)} --- {(i+1)/len(mtg_labels)*100:.2f}%")
         except Exception as e:
             logger.error(f"Error in channel {i}.{mtg}: {e}")
-            print(f"Error in channel {mtg}: {e}")
+            if verbose:
+                print(f"Error in channel {mtg}: {e}")
             #return
 
-    save_all_channel_events(pat_name, mtg_labels, out_path, all_ch_df_filepath)
+    save_all_channel_events(pat_name, mtg_labels, out_path, all_ch_df_filepath, verbose=verbose)
 
     return all_ch_df_filepath
 
-def channel_specific_characterization(pat_name: str, fs: float, screen_size:tuple, mtg_signal: np.ndarray, mtg: str, an_wdws_dict: dict, out_path:str, power_line_freqs:float=60, n_jobs:int=-1, force_recalc:bool=False, save_spect_img:bool=False):
+def channel_specific_characterization(pat_name: str, fs: float, screen_size:tuple, mtg_signal: np.ndarray, mtg: str, an_wdws_dict: dict, out_path:str, power_line_freqs:float=60, n_jobs:int=-1, force_recalc:bool=False, save_spect_img:bool=False, verbose:bool=False):
 
     logger.info(f"channel_specific_characterization:{mtg}")
-    print(f"channel_specific_characterization:{mtg}")
+    if verbose:
+        print(f"channel_specific_characterization:{mtg}")
 
     new_out_path = out_path / mtg
     os.makedirs(new_out_path, exist_ok=True)
@@ -187,7 +190,8 @@ def channel_specific_characterization(pat_name: str, fs: float, screen_size:tupl
             n_jobs = int(CPU_COUNT*1.0)
 
         logger.info(f"Using {n_jobs} parallel jobs")
-        print(f"Using {n_jobs} parallel jobs")
+        if verbose:
+            print(f"Using {n_jobs} parallel jobs")
         parallel = Parallel(n_jobs=n_jobs, return_as="list")
         wdw_objects_feats_ls = parallel(
                             delayed(hfo_spectro_bp_wdw_analysis)
@@ -210,7 +214,8 @@ def channel_specific_characterization(pat_name: str, fs: float, screen_size:tupl
 
         tot_nr_contour_objs += len(wdw_objects_feats_ls)
         logger.info(f"Total nr. contour objects: {tot_nr_contour_objs}")
-        print(f"Total nr. contour objects: {tot_nr_contour_objs}")
+        if verbose:
+            print(f"Total nr. contour objects: {tot_nr_contour_objs}")
         
         # while len(wdw_objects_feats_ls) != 0:
         #     wdw_contours_df = wdw_objects_feats_ls.pop(0)
@@ -254,7 +259,8 @@ def channel_specific_characterization(pat_name: str, fs: float, screen_size:tupl
 
                             except Exception as eapp:
                                 logger.error(f"Error when appending wdw_contours_df{aei}: {eapp}")
-                                print(f"Error when appending wdw_contours_df{aei}: {eapp}")
+                                if verbose:
+                                    print(f"Error when appending wdw_contours_df{aei}: {eapp}")
                                 logger.info(f"wdw_contours_df type: {type(wdw_contours_df)}")
                                 pass
 
@@ -263,7 +269,8 @@ def channel_specific_characterization(pat_name: str, fs: float, screen_size:tupl
                         ch_contours_df = pd.concat(assembled_events_ls, ignore_index=True)
 
                 except Exception as et:
-                    print(f"Error when using memory intensive saving of characterized objects, channel {mtg}: {et}")
+                    if verbose:
+                        print(f"Error when using memory intensive saving of characterized objects, channel {mtg}: {et}")
                     logger.error(f"Error when using memory intensive saving of characterized objects, channel {mtg}: {et}")
 
                     return     
@@ -280,18 +287,21 @@ def channel_specific_characterization(pat_name: str, fs: float, screen_size:tupl
             rows_before_dropna = ch_contours_df.shape[0]
             ch_contours_df = ch_contours_df.dropna()
             logger.info(f"Rows before dropna: {rows_before_dropna}, Rows after dropna: {ch_contours_df.shape[0]}")
-            print(f"Rows before dropna: {rows_before_dropna}, Rows after dropna: {ch_contours_df.shape[0]}")
+            if verbose:
+                print(f"Rows before dropna: {rows_before_dropna}, Rows after dropna: {ch_contours_df.shape[0]}")
             for col_name in ch_contours_df.columns:
                 nr_nans = ch_contours_df[col_name].isna().sum()
                 assert nr_nans == 0, f"Column {col_name} contains {nr_nans} NaN values"
                 
             logger.info(f"Saving {ch_df_filepath}")
-            print(f"Saving {ch_df_filepath}")
+            if verbose:
+                print(f"Saving {ch_df_filepath}")
             ch_contours_df.to_parquet(ch_df_filepath, index=False)
         else:
             # If no objects were detected, create an empty dataframe
             logger.info(f"No objects detected in {mtg}")
-            print(f"No objects detected in {mtg}")
+            if verbose:
+                print(f"No objects detected in {mtg}")
             with open(ch_df_filepath, "w") as file:
                 file.write("NoEvents")
             
@@ -536,9 +546,8 @@ def hfo_spectro_bp_wdw_analysis(\
             all_relevant_peaks_freq_ok = bp_feats['all_relevant_peaks_avg_freq'] <= bp_feats['prom_peaks_avg_freq']*2.5 and bp_feats['all_relevant_peaks_avg_freq'] <= fs/3
             nr_relevant_peaks_ok = bp_feats['all_relevant_peaks_nr'] <= 2*bp_feats['prom_peaks_nr']-1
             relevant_peaks_ok = all_relevant_peaks_freq_ok #all_relevant_peaks_freq_ok and nr_relevant_peaks_ok
-            tf_ok = other_spectral_feats['NrSpectrumPeaks'] <= 1 and other_spectral_feats['TF_Complexity'] < 0.6
             
-            bp_ok = sinusoidal_ok and prom_peaks_ok and relevant_peaks_ok and tf_ok
+            bp_ok = sinusoidal_ok and prom_peaks_ok and relevant_peaks_ok
 
             bp_ok = wdw_contours_df.at[idx,'hvr'] > 10 and wdw_contours_df.at[idx,'circularity'] > 30 and \
                     bp_feats['prom_peaks_nr']>=4 and bp_feats['max_hfo_sine_corr']>0.80 and \
@@ -549,7 +558,7 @@ def hfo_spectro_bp_wdw_analysis(\
             
             bp_ok = bp_ok and inverted_bp_ok
                     
-            # if bp_feats['max_hfo_sine_corr']>=0.99 and tf_ok and prom_peaks_freq_ok and bp_feats['prom_peaks_nr']>=3:
+            # if bp_feats['max_hfo_sine_corr']>=0.99 and prom_peaks_freq_ok and bp_feats['prom_peaks_nr']>=3:
             #     bp_ok = True
                     
         wdw_contours_df.at[idx,'bp_ok'] = bp_ok
@@ -763,12 +772,12 @@ def hfo_spectro_bp_wdw_analysis(\
             # os.makedirs(new_out_path, exist_ok=True)
             # plt.savefig(new_out_path+fig_title+'.png', bbox_inches='tight')
 
-        fig_filepath = out_path+fig_title+'.png'
+        fig_filepath = out_path / f"{fig_title}.png"
         plt.savefig(fig_filepath, bbox_inches='tight')
 
         plt.close(2)
 
-        print(f"HFO Objects Plot total_time={time.time()-start_time}")
+        #print(f"HFO Objects Plot total_time={time.time()-start_time}")
         pass
     
     return wdw_contours_df
