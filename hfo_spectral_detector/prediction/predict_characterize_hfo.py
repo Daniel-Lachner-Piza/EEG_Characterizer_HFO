@@ -10,6 +10,7 @@ from pathlib import Path
 from hfo_spectral_detector.elpi.elpi_interface import load_elpi_file, write_elpi_file, get_agreement_between_elpi_files
 from hfo_spectral_detector.studies_info.studies_info import StudiesInfo
 from hfo_spectral_detector.eeg_io.eeg_io import EEG_IO
+from hfo_spectral_detector.prediction.elpi_events_characterizer import HFO_Characterizer
 
 from xgboost import XGBClassifier
 import xgboost as xgb
@@ -21,6 +22,9 @@ class HFO_Detector:
 
         self.output_path = output_path
         os.makedirs(self.output_path, exist_ok=True)
+        
+        # Initialize the characterizer
+        self.characterizer = HFO_Characterizer()
         
         # Define the path to the classifier model and the standard scaler
         models_path = Path(__file__).parent
@@ -206,6 +210,13 @@ class HFO_Detector:
         except Exception as e:
             raise RuntimeError(f"Error saving ELPI file: {str(e)}")
         
+        # Chracterize each elpi HFO event
+        try:
+            chrtrzd_elpi_marks_fpath = elpi_hfo_marks_fpath.parent / f"{elpi_hfo_marks_fpath.stem}_characterized.mat"
+            self.characterizer.characterize_elpi_events(chrtrzd_elpi_marks_fpath, detected_hfo_contours_df, elpi_hfo_detections_df)
+        except Exception as e:
+            raise RuntimeError(f"Error during ELPI event characterization: {str(e)}")
+
         return detected_hfo_contours_df, elpi_hfo_detections_df, elpi_hfo_marks_fpath
     
     def _add_ratio_features(self, df):
@@ -355,6 +366,45 @@ class HFO_Detector:
                 merged.append((current_start, current_end))
         
         return merged
+
+    def _add_ratio_features(self, df):
+        """
+        Add ratio features between event and background signals with robust error handling.
+        
+        Args:
+            df: DataFrame with signal features
+            
+        Returns:
+            DataFrame with added ratio features
+        """
+        df = df.copy()  # Avoid modifying original DataFrame
+        
+        # Define ratio feature mappings
+        ratio_features = {
+            'EventBkgrndRatio_Power': ('bp_sig_pow', 'bkgrnd_sig_pow'),
+            'EventBkgrndRatio_StdDev': ('bp_sig_std', 'bkgrnd_sig_std'),
+            'EventBkgrndRatio_Activity': ('bp_sig_activity', 'bkgrnd_sig_activity'),
+            'EventBkgrndRatio_Mobility': ('bp_sig_avg_mobility', 'bkgrnd_sig_avg_mobility'),
+            'EventBkgrndRatio_Complexity': ('bp_sig_complexity', 'bkgrnd_sig_complexity')
+        }
+        
+        for ratio_name, (numerator_col, denominator_col) in ratio_features.items():
+            if numerator_col in df.columns and denominator_col in df.columns:
+                # Handle division by zero and invalid values
+                denominator = df[denominator_col].to_numpy()
+                numerator = df[numerator_col].to_numpy()
+                
+                # Replace zeros and very small values in denominator to avoid division issues
+                safe_denominator = np.where(np.abs(denominator) < 1e-10, 1e-10, denominator)
+                ratio = numerator / safe_denominator
+                
+                # Handle infinite and NaN values
+                ratio = np.where(np.isfinite(ratio), ratio, np.nan)
+                df[ratio_name] = ratio
+            else:
+                print(f"Warning: Cannot create {ratio_name}, missing columns: {numerator_col} or {denominator_col}")
+        
+        return df
 
 
 if __name__ == "__main__":
