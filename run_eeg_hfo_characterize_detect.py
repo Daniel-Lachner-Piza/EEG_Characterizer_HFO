@@ -472,8 +472,6 @@ def create_argument_parser() -> argparse.ArgumentParser:
     
     parser.add_argument('--dataset_name', type=str, required=True, 
                        help='Name of the dataset')
-    parser.add_argument('--rm_vchann', type=str, default="yes", 
-                    choices=['yes', 'no'], help='Remove Natus virtual channels if present')
     parser.add_argument('--input_folder', type=str, required=True, 
                        help='Path to directory containing EEG files')
     parser.add_argument('--output_folder', type=str, required=True, 
@@ -484,6 +482,8 @@ def create_argument_parser() -> argparse.ArgumentParser:
                        help='Name of the montage (ib, ir, sb, sr)')
     parser.add_argument('--montage_channels', type=str, default="",
                        help='Comma separated montage channels to detect, empty detects all (e.g., "F3-C3,C3-P3, F4-C4,C4-P4"')
+    parser.add_argument('--rm_vchann', type=str, default="yes", 
+                    choices=['yes', 'no'], help='Remove Natus virtual channels if present')
     parser.add_argument('--power_line_freq', type=int, default=60, 
                        help='Frequency of Power Lines (0 to turn off automatic power-line noise notch filtering, otherwise 50 or 60)')
     parser.add_argument('--start_sec', type=float, default=0,
