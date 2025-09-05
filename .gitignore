@@ -22,3 +22,4 @@ hfo_spectral_detector.log
 # VENV
 .venv/
 *.out
+docs/Python_Logging_Guide.md

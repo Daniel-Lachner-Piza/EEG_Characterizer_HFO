@@ -3,7 +3,7 @@ import os
 import argparse
 import socket
 import logging
-from typing import List, Dict, Any, Optional, Union
+from typing import List, Dict, Optional
 from contextlib import contextmanager
 import time
 
@@ -74,21 +74,24 @@ class Characterization_Config:
     
     Attributes:
         dataset_name: String identifier for the dataset
+        rm_vchann: Whether to remove Natus virtual channels
         input_folder: Path object for input directory
         output_folder: Path object for output directory
         eeg_format: File format (edf, fif, etc.)
         montage_type: Electrode montage type (ib, ir, sb, sr)
-        power_line_freqs: Power line frequency (50 or 60 Hz)
+        power_line_freqs: Power line frequency (0, 50 or 60 Hz)
         start_sec: Analysis start time in seconds
         end_sec: Analysis end time in seconds
         wdw_step_s: Window step size in seconds
         force_characterization: Whether to force recalculation
         force_hfo_detection: Whether to force HFO detection
         n_jobs: Number of parallel jobs
+        save_spect_img: Whether to save spectrogram images
     """
 
-    def __init__(self, args):
+    def __init__(self, args, test_mode: bool = False):
         self.dataset_name = args.dataset_name
+        self.rm_vchann = args.rm_vchann.lower()
         self.input_folder = Path(args.input_folder)
         self.output_folder = Path(args.output_folder)
         self.eeg_format = args.eeg_format.lower()
@@ -100,12 +103,17 @@ class Characterization_Config:
         self.force_characterization = args.force_characterization.lower()
         self.force_hfo_detection = args.force_hfo_detection.lower()
         self.n_jobs = int(args.n_jobs)
-        
+        self.verbose = args.verbose.lower()
+        self.save_spect_img = (self.n_jobs==1 and DEFAULT_SAVE_SPECT_IMAGE) and test_mode
+
         # Validate configuration
         self._validate_config()
 
     def _validate_config(self) -> None:
         """Validate configuration parameters."""
+        if self.rm_vchann not in ['yes', 'no']:
+            raise ValueError("rm_vchann must be 'yes' or 'no'")
+        
         if not self.input_folder.exists():
             raise ValueError(f"Input folder does not exist: {self.input_folder}")
         
@@ -115,7 +123,7 @@ class Characterization_Config:
         if self.montage_type not in ['ib', 'ir', 'sb', 'sr']:
             raise ValueError(f"Invalid montage type: {self.montage_type}")
         
-        if self.power_line_freqs not in [50, 60]:
+        if self.power_line_freqs not in [0, 50, 60]:
             raise ValueError(f"Invalid power line frequency: {self.power_line_freqs}")
         
         if self.start_sec < 0:
@@ -123,6 +131,8 @@ class Characterization_Config:
         
         if self.end_sec > 0 and self.end_sec <= self.start_sec:
             raise ValueError("End time must be greater than start time")
+        elif self.end_sec != -1 and self.end_sec <= 0:
+            raise ValueError("End time must be positive or -1 for full length")
         
         if self.wdw_step_s <= 0:
             raise ValueError("Window step size must be positive")
@@ -132,7 +142,15 @@ class Characterization_Config:
         
         if self.force_hfo_detection not in ['yes', 'no']:
             raise ValueError("force_hfo_detection must be 'yes' or 'no'")
+        
+        if self.verbose not in ['yes', 'no']:
+            raise ValueError("verbose must be 'yes' or 'no'")
 
+    @property
+    def rm_vchann_bool(self) -> bool:
+        """Get rm_vchann as boolean."""
+        return self.rm_vchann == "yes"
+    
     @property
     def force_characterization_bool(self) -> bool:
         """Get force_characterization as boolean."""
@@ -143,17 +161,25 @@ class Characterization_Config:
         """Get force_hfo_detection as boolean."""
         return self.force_hfo_detection == "yes"
 
+    @property
+    def verbose_bool(self) -> bool:
+        """Get verbose as boolean."""
+        return self.verbose == "yes"
+
     def display_config(self) -> None:
         """Display configuration parameters to console."""
         config_str = (
             f"Dataset = {self.dataset_name}\n"
+            f"Remove Natus virtual channels = {self.rm_vchann}\n"
             f"Input folder = {self.input_folder}\n"
             f"Output folder = {self.output_folder}\n"
             f"EEG format = {self.eeg_format}\n"
             f"Montage type = {self.montage_type}\n"
             f"Power line frequencies = {self.power_line_freqs}\n"
             f"Force characterization = {self.force_characterization}\n"
-            f"Force HFO detection = {self.force_hfo_detection}"
+            f"Force HFO detection = {self.force_hfo_detection}\n"
+            f"Verbose = {self.verbose}\n"
+            f"Save spectrogram images = {self.save_spect_img}"
         )
         print(config_str)
 
@@ -161,13 +187,16 @@ class Characterization_Config:
         """Log configuration parameters efficiently."""
         config_items = [
             f"Dataset = {self.dataset_name}",
+            f"Remove Natus virtual channels = {self.rm_vchann}",
             f"Input folder = {self.input_folder}",
             f"Output folder = {self.output_folder}",
             f"EEG format = {self.eeg_format}",
             f"Montage type = {self.montage_type}",
             f"Power line frequencies = {self.power_line_freqs}",
             f"Force characterization = {self.force_characterization}",
-            f"Force HFO detection = {self.force_hfo_detection}"
+            f"Force HFO detection = {self.force_hfo_detection}",
+            f"Verbose = {self.verbose}",
+            f"Save spectrogram images = {self.save_spect_img}"
         ]
         logger.info("Configuration:\n" + "\n".join(config_items))
 
@@ -361,7 +390,11 @@ def _process_single_eeg_file(
         raise EEGProcessingError(f"Failed to read EEG file: {e}")
     
     fs = eeg_reader.fs
-    eeg_reader.remove_natus_virtual_channels()
+    if fs <= 0:
+        raise EEGProcessingError(f"Invalid sampling rate: {fs} Hz")    
+
+    if cfg.rm_vchann_bool:
+        eeg_reader.remove_natus_virtual_channels()
     
     # Validate EEG data
     _validate_eeg_data(eeg_reader)
@@ -399,7 +432,8 @@ def _process_single_eeg_file(
         "power_line_freqs": cfg.power_line_freqs,
         "n_jobs": cfg.n_jobs,
         "force_recalc": cfg.force_characterization_bool,
-        "save_spect_img": DEFAULT_SAVE_SPECT_IMAGE,
+        "verbose": cfg.verbose_bool,
+        "save_spect_img": cfg.save_spect_img
     }
 
     # Run characterization and detection
@@ -427,6 +461,8 @@ def create_argument_parser() -> argparse.ArgumentParser:
     
     parser.add_argument('--dataset_name', type=str, required=True, 
                        help='Name of the dataset')
+    parser.add_argument('--rm_vchann', type=str, default="yes", 
+                    choices=['yes', 'no'], help='Remove Natus virtual channels if present')
     parser.add_argument('--input_folder', type=str, required=True, 
                        help='Path to directory containing EEG files')
     parser.add_argument('--output_folder', type=str, 
@@ -436,8 +472,8 @@ def create_argument_parser() -> argparse.ArgumentParser:
     parser.add_argument('--montage_type', type=str, required=True, 
                        help='Name of the montage (ib, ir, sb, sr)')
     parser.add_argument('--power_line_freq', type=int, default=60, 
-                       help='Frequency of Power Lines (50 or 60)')
-    parser.add_argument('--start_sec', type=float, default=0, 
+                       help='Frequency of Power Lines (0 to turn off automatic power-line noise notch filtering, otherwise 50 or 60)')
+    parser.add_argument('--start_sec', type=float, default=0,
                        help='Start analysis from a specific second')
     parser.add_argument('--end_sec', type=float, default=-1, 
                        help='End analysis from a specific second, -1 is full length')
@@ -449,6 +485,8 @@ def create_argument_parser() -> argparse.ArgumentParser:
                        choices=['yes', 'no'], help='Force HFO detection')
     parser.add_argument('--n_jobs', type=int, default=-1, 
                        help='Number of jobs to run in parallel, -1 uses all CPU cores')
+    parser.add_argument('--verbose', type=str, default="no", 
+                       choices=['yes', 'no'], help='Enable verbose output')
     
     return parser
 
@@ -458,6 +496,7 @@ def create_test_args():
     class TestArgs:
         def __init__(self):
             self.dataset_name = "PhysioTest_DLP"
+            self.rm_vchann = "yes"
             self.input_folder = "/home/dlp/Documents/Development/Data/Physio_EEG_Data/"
             self.output_folder = "/home/dlp/Documents/Development/Data/Test-DLP-Output/"
             self.eeg_format = "edf"
@@ -468,7 +507,8 @@ def create_test_args():
             self.start_sec = 0.0
             self.end_sec = 60.0
             self.wdw_step_s = 1.0
-            self.n_jobs = -1
+            self.n_jobs = 1
+            self.verbose = "yes"
     
     return TestArgs()
 
