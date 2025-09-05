@@ -43,8 +43,9 @@ def init_logging() -> logging.Logger:
     # Avoid duplicate handlers if root logger already configured
     if root_logger.handlers:
         return logging.getLogger(__name__)
-        
-    log_fpath = Path(__file__).parent / "logs" / "hfo_spectral_detector.log"
+    
+    timestamp = time.strftime("%Y%m%d-%H%M%S")
+    log_fpath = Path(__file__).parent / "logs" / f"hfo_spectral_detector_{timestamp}.log"
     os.makedirs(log_fpath.parent, exist_ok=True)
     
     # Create formatter
