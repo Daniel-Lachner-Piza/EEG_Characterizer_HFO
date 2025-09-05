@@ -17,7 +17,7 @@ from hfo_spectral_detector.prediction.predict_characterize_hfo import HFO_Detect
 
 # Module-level constants for better performance
 DEFAULT_SAMPLING_RATE_THRESHOLD = 1000
-DEFAULT_WINDOW_LENGTH_SECONDS = 1.0
+DEFAULT_WINDOW_LENGTH_SECONDS = 1.0  # do not change this value, it is used in the HFO detector
 DEFAULT_SAVE_SPECT_IMAGE = False
 LOG_FORMAT = '%(asctime)s %(levelname)-8s %(message)s'
 LOG_DATE_FORMAT = '%Y-%m-%d %H:%M:%S'
@@ -80,6 +80,7 @@ class Characterization_Config:
         output_folder: Path object for output directory
         eeg_format: File format (edf, fif, etc.)
         montage_type: Electrode montage type (ib, ir, sb, sr)
+        montage_channels: Comma separated montage channels to detect, empty detects all (e.g., "F3-C3,C3-P3, F4-C4,C4-P4")
         power_line_freqs: Power line frequency (0, 50 or 60 Hz)
         start_sec: Analysis start time in seconds
         end_sec: Analysis end time in seconds
@@ -97,6 +98,7 @@ class Characterization_Config:
         self.output_folder = Path(args.output_folder)
         self.eeg_format = args.eeg_format.lower()
         self.montage_type = args.montage_type.lower()
+        self.montage_channels = str(args.montage_channels.lower()).lower().replace(" ", "")
         self.power_line_freqs = int(args.power_line_freq)
         self.start_sec = float(args.start_sec)
         self.end_sec = float(args.end_sec)
@@ -123,7 +125,7 @@ class Characterization_Config:
         
         if self.montage_type not in ['ib', 'ir', 'sb', 'sr']:
             raise ValueError(f"Invalid montage type: {self.montage_type}")
-        
+                
         if self.power_line_freqs not in [0, 50, 60]:
             raise ValueError(f"Invalid power line frequency: {self.power_line_freqs}")
         
@@ -146,6 +148,11 @@ class Characterization_Config:
         
         if self.verbose not in ['yes', 'no']:
             raise ValueError("verbose must be 'yes' or 'no'")
+
+    @property
+    def montage_channels_list(self) -> list:
+        """Get montage_channels as list."""
+        return self.montage_channels.split(",") if self.montage_channels else []
 
     @property
     def rm_vchann_bool(self) -> bool:
@@ -176,6 +183,7 @@ class Characterization_Config:
             f"Output folder = {self.output_folder}\n"
             f"EEG format = {self.eeg_format}\n"
             f"Montage type = {self.montage_type}\n"
+            f"Montage channels = {self.montage_channels}\n"
             f"Power line frequencies = {self.power_line_freqs}\n"
             f"Force characterization = {self.force_characterization}\n"
             f"Force HFO detection = {self.force_hfo_detection}\n"
@@ -193,6 +201,7 @@ class Characterization_Config:
             f"Output folder = {self.output_folder}",
             f"EEG format = {self.eeg_format}",
             f"Montage type = {self.montage_type}",
+            f"Montage channels = {self.montage_channels}",
             f"Power line frequencies = {self.power_line_freqs}",
             f"Force characterization = {self.force_characterization}",
             f"Force HFO detection = {self.force_hfo_detection}",
@@ -347,7 +356,7 @@ def run_eeg_characterization(
     # Create the detector object once for all files
     detector_results_path = cfg.output_folder / 'Elpi_Detector_Results'
     with timing_context("Detector initialization", logger):
-        detector = HFO_Detector(eeg_type=cfg.montage_type, output_path=detector_results_path)
+        detector = HFO_Detector(output_path=detector_results_path)
         detector.load_models()
 
     processed_count = 0
@@ -358,7 +367,7 @@ def run_eeg_characterization(
         
         try:
             with timing_context(f"Processing {pat_name}", logger):
-                _process_single_eeg_file(cfg, eeg_fpath, detector, logger)
+                process_single_eeg_file(cfg, eeg_fpath, detector, logger)
             processed_count += 1
             
         except (EEGValidationError, AnalysisWindowError, EEGProcessingError) as e:
@@ -375,7 +384,7 @@ def run_eeg_characterization(
     logger.info(f"Processing completed: {processed_count} successful, {error_count} errors")
 
 
-def _process_single_eeg_file(
+def process_single_eeg_file(
     cfg: Characterization_Config,
     eeg_fpath: Path,
     detector: HFO_Detector,
@@ -428,6 +437,7 @@ def _process_single_eeg_file(
     params = {
         "pat_name": pat_name,
         "eeg_reader": eeg_reader,
+        "mtgs_to_detect": cfg.montage_channels_list,
         "an_wdws_dict": an_wdws_dict,
         "out_path": cfg.output_folder,
         "power_line_freqs": cfg.power_line_freqs,
@@ -466,12 +476,14 @@ def create_argument_parser() -> argparse.ArgumentParser:
                     choices=['yes', 'no'], help='Remove Natus virtual channels if present')
     parser.add_argument('--input_folder', type=str, required=True, 
                        help='Path to directory containing EEG files')
-    parser.add_argument('--output_folder', type=str, 
+    parser.add_argument('--output_folder', type=str, required=True, 
                        help='Path to the output directory')
     parser.add_argument('--eeg_format', type=str, default="edf", 
                        help='File format of the EEG files')
     parser.add_argument('--montage_type', type=str, required=True, 
                        help='Name of the montage (ib, ir, sb, sr)')
+    parser.add_argument('--montage_channels', type=str, default="",
+                       help='Comma separated montage channels to detect, empty detects all (e.g., "F3-C3,C3-P3, F4-C4,C4-P4"')
     parser.add_argument('--power_line_freq', type=int, default=60, 
                        help='Frequency of Power Lines (0 to turn off automatic power-line noise notch filtering, otherwise 50 or 60)')
     parser.add_argument('--start_sec', type=float, default=0,
@@ -486,7 +498,7 @@ def create_argument_parser() -> argparse.ArgumentParser:
                        choices=['yes', 'no'], help='Force HFO detection')
     parser.add_argument('--n_jobs', type=int, default=-1, 
                        help='Number of jobs to run in parallel, -1 uses all CPU cores')
-    parser.add_argument('--verbose', type=str, default="no", 
+    parser.add_argument('--verbose', type=str, default="yes", 
                        choices=['yes', 'no'], help='Enable verbose output')
     
     return parser
@@ -502,6 +514,7 @@ def create_test_args():
             self.output_folder = "/home/dlp/Documents/Development/Data/Test-DLP-Output/"
             self.eeg_format = "edf"
             self.montage_type = "sb"
+            self.montage_channels = "" #"F3-C3,C3-P3,F4-C4,C4-P4"
             self.power_line_freq = 60
             self.force_characterization = "yes"
             self.force_hfo_detection = "yes"

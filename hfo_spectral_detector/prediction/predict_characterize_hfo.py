@@ -17,11 +17,8 @@ import xgboost as xgb
 logger = logging.getLogger(__name__)
 
 class HFO_Detector:
-    def __init__(self, eeg_type:str="", output_path:Path=Path(Path(os.path.dirname(__file__)))) -> None:
+    def __init__(self, output_path:Path=Path(Path(os.path.dirname(__file__)))) -> None:
 
-        assert eeg_type in ['sr', 'sb', 'ir', 'ib'], "EEG type must be one of 'sr', 'sb', 'ir', or 'ib'."
-
-        self.eeg_type = eeg_type
         self.output_path = output_path
         os.makedirs(self.output_path, exist_ok=True)
         

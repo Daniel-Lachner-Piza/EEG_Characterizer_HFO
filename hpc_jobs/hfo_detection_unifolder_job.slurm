@@ -29,13 +29,19 @@ force_characterization="no" # Recalculate features even if files present
 force_hfo_detection="no"   # Force HFO detection even if files present
 
 python ~/Projects/EEG_Characterizer_HFO/run_eeg_characterization.py \
-  --dataset_name "$dataset_name" \
-  --input_folder "$input_folder" \
-  --output_folder "$output_folder" \
-  --eeg_format "$eeg_format" \
-  --montage_type "$montage_type" \
-  --power_line_freq "$power_line_freq" \
-  --force_characterization "$force_characterization" \
-  --force_hfo_detection "$force_hfo_detection"
+    --dataset_name "$dataset_name" \
+    --input_folder "$input_folder" \
+    --output_folder "$output_folder" \
+    --eeg_format "$eeg_format" \
+    --montage_type "$montage_type" \
+    --montage_channels "" \
+    --power_line_freq "$power_line_freq" \
+    --start_sec 0 \
+    --end_sec -1 \
+    --wdw_step_s 0.1 \
+    --force_characterization "$force_characterization" \
+    --force_hfo_detection "$force_hfo_detection" \
+    --n_jobs -1 \
+    --verbose "yes"
 
 echo "All processing completed."

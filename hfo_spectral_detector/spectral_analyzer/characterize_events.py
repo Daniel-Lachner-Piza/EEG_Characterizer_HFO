@@ -5,6 +5,7 @@ import pandas as pd
 import logging
 import gc
 from pathlib import Path
+from typing import List
 
 import matplotlib as mpl
 #mpl.use("TkAgg")
@@ -70,8 +71,8 @@ def save_all_channel_events(pat_name: str, mtg_labels:list, out_path:str=None, a
     
     return all_ch_df_filepath
 
-def characterize_events(pat_name: str, eeg_reader: EEG_IO, an_wdws_dict: dict, out_path:Path=None, power_line_freqs:float=60, n_jobs:int=-1, force_recalc:bool=False, save_spect_img:bool=False, verbose:bool=False)->str:
-    
+def characterize_events(pat_name: str, eeg_reader: EEG_IO, mtgs_to_detect:List[Path], an_wdws_dict: dict, out_path:Path=None, power_line_freqs:float=60, n_jobs:int=-1, force_recalc:bool=False, save_spect_img:bool=False, verbose:bool=False)->str:
+
     logger.info(f"{pat_name}\nCharacterize Events")
     if verbose:
         print(f"{pat_name}\nCharacterize Events")
@@ -96,6 +97,13 @@ def characterize_events(pat_name: str, eeg_reader: EEG_IO, an_wdws_dict: dict, o
     for i, mtg in enumerate(mtg_labels):   
         try:
             start_time = time.time()
+
+            if mtgs_to_detect is not None and len(mtgs_to_detect) > 0:
+                if mtg.lower() not in mtgs_to_detect:
+                    logger.info(f"Skipping channel {mtg} as it is not in the list of channels to detect")
+                    if verbose:
+                        print(f"Skipping channel {mtg} as it is not in the list of channels to detect")
+                    continue
         
             #ch_data_idx = np.argwhere(mtg == mtg_eeg_data['mtg_labels']).squeeze()
             ch_data_idx = np.argwhere([mtg == this_ls_mtg for this_ls_mtg in mtg_labels])[0][0]
