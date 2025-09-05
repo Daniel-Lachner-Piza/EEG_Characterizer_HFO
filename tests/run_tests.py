@@ -28,6 +28,8 @@ from tests.test_eeg_processing import *
 from tests.test_argument_parsing import *
 from tests.test_main_function import *
 from tests.test_integration import *
+from tests.test_eeg_io import *
+from tests.test_laydat_writer import *
 
 
 def run_all_tests():

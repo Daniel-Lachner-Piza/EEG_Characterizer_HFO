@@ -111,7 +111,9 @@ class EEG_IO:
 
         The function reads the EEG data file based on the file extension and returns the corresponding EEG header object using the appropriate MNE-Python function.
         """
-        file_extension = eeg_filepath.suffixes[0]
+        from pathlib import Path
+        filepath = Path(eeg_filepath)
+        file_extension = filepath.suffixes[0]
         if file_extension=='.lay':
             eeg_hdr = mne.io.read_raw_persyst(eeg_filepath, verbose='ERROR')
         elif file_extension=='.edf':

@@ -6,13 +6,15 @@ from datetime import datetime
 import matplotlib.pyplot as plt
 import mne
 from pathlib import Path
-from pyeeg_toolbox.utils.io_tools import get_files_in_folder
-from studies_info import ACH_Pediatric_Patients
+from hfo_spectral_detector.utils.io_tools import get_files_in_folder
 
 
 def write_dat(eeg_data_path:str=None, pat_id:str=None, output_path:str=None):
 
     eeg_files_ls = get_files_in_folder(eeg_data_path, '.lay')
+
+    # Convert string path to Path object if needed
+    output_path = Path(output_path)
 
     this_patient_errors_df = pd.DataFrame()
     for this_pat_eeg_fpath in eeg_files_ls:
