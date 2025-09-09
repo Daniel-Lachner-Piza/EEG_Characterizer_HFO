@@ -222,7 +222,7 @@ class InputDataExtractor:
         """Get the filepaths from the EEG files in the input folder with caching."""
         if self._files_cache is None:
             pattern = f"**/*.{self.cfg.eeg_format}"
-            self._files_cache = list(self.cfg.input_folder.glob(pattern))
+            self._files_cache = list(self.cfg.input_folder.glob(pattern, case_sensitive=False))
             self._files_cache.sort()  # Ensure consistent ordering
         return self._files_cache
 

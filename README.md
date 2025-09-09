@@ -1,7 +1,7 @@
 
 # EEG Characterizer HFO
 
-A spectral-based High-Frequency Oscillation (HFO) detection and characterization tool for EEG data analysis.
+This repo contains the High-Frequency Oscillations (HFO) detector from the Jacobs Lab at the University of Calgary. The detector spectral-based 
 
 ## Table of Contents
 
