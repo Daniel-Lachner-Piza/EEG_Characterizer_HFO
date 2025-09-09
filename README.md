@@ -69,7 +69,12 @@ cd ~/Projects/EEG_Characterizer_HFO
 uv sync
 ```
 
-#### 4. Activate the Environment
+#### 4. Download detector files
+```bash
+wget https://drive.google.com/drive/folders/1yUeMmSEcIxKHiqPuXfkrhusDih5uNM5g?usp=drive_link
+```
+
+#### 5. Activate the Environment
 ```bash
 cd ~/Projects/EEG_Characterizer_HFO
 source .venv/bin/activate

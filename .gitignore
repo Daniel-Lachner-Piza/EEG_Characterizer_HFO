@@ -7,11 +7,11 @@
 *.gif
 **/Models/
 **/Models2/
-*.bin
-hfo_spectral_detector/prediction/*.bin
+#*.bin
+#hfo_spectral_detector/prediction/*.bin
 *.db
-*.json
-hfo_spectral_detector/prediction/*.json
+#*.json
+#hfo_spectral_detector/prediction/*.json
 *.npy
 *.csv
 *.log
@@ -23,3 +23,4 @@ hfo_spectral_detector.log
 .venv/
 *.out
 Slurm_Logs/*
+.vscode/launch.json
