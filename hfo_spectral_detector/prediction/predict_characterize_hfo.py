@@ -4,6 +4,7 @@ import pandas as pd
 import datetime
 import os
 import joblib
+import json
 import logging
 from pathlib import Path
 
@@ -28,10 +29,12 @@ class HFO_Detector:
         
         # Define the path to the classifier model and the standard scaler
         models_path = Path(__file__).parent
-        self.classifier_model_fpath = models_path / "XGB_Single_Class_2025-04-24_22-09_Kappa86.json"
-        self.feat_scaler_fpath = models_path /  "XGB_Single_Class_Standard_Scaler_2025-04-24_22-09_Kappa86.bin"
+        self.classifier_model_fpath = models_path / "XGB_2025-09-08_23-42_Kappa90.json"
+        self.feat_scaler_fpath = models_path /  "XGB_Standard_Scaler_2025-09-08_23-42_Kappa90.bin"
+        self.threshold_fpath = models_path / "XGB_OptimalThreshold_2025-09-08_23-42_90.json"
         self.classifier_model = None
         self.feat_scaler = None
+        self.classifier_th = 0.5
 
         # Define features to use for the classification  
         self.feature_selection = [
@@ -57,11 +60,19 @@ class HFO_Detector:
         # Check if the model and scaler files exist
         assert os.path.isfile(self.classifier_model_fpath), f"Classifier model file not found: {self.classifier_model_fpath}"
         assert os.path.isfile(self.feat_scaler_fpath), f"Standard scaler file not found: {self.feat_scaler_fpath}"
+        assert os.path.isfile(self.threshold_fpath), f"Threshold file not found: {self.threshold_fpath}"
 
         # Load model and scaler
         self.classifier_model = XGBClassifier()
         self.classifier_model.load_model(self.classifier_model_fpath)
         self.feat_scaler = joblib.load(self.feat_scaler_fpath)
+        
+        # Load optimal threshold from JSON file
+        with open(self.threshold_fpath, 'r') as f:
+            threshold_data = json.load(f)
+            self.classifier_th = threshold_data['optimal_threshold']
+
+        logger.info(f"Models loaded successfully. Optimal threshold: {self.classifier_th}")
 
         pass
 
@@ -172,7 +183,7 @@ class HFO_Detector:
             X_Data = self.feat_scaler.transform(feature_matrix)
             booster = self.classifier_model.get_booster()
             y_pred = booster.predict(xgb.DMatrix(X_Data)).ravel()
-            y_pred = y_pred>=0.5
+            y_pred = y_pred >= self.classifier_th
         except Exception as e:
             raise RuntimeError(f"Error during classification: {str(e)}")
         

@@ -1,31 +1,31 @@
 
-# 🧠 EEG Characterizer HFO
+# EEG Characterizer HFO
 
 A spectral-based High-Frequency Oscillation (HFO) detection and characterization tool for EEG data analysis.
 
-## 📋 Table of Contents
+## Table of Contents
 
-- [🔍 Overview](#overview)
-- [⭐ Features](#features)
-- [🚀 Installation](#installation)
-  - [🔧 Environment Setup](#environment-setup)
-- [💻 Usage](#usage)
-  - [⚡ Quick Start](#quick-start)
-  - [⚙️ Command Line Arguments](#command-line-arguments)
-  - [📝 Example Usage](#example-usage)
-- [🛠️ Development](#development)
-  - [📊 MLflow Integration](#mlflow-integration)
-- [📁 Data Management](#data-management)
-  - [🔄 Data Transfer to HPC](#data-transfer-to-hpc)
-  - [📂 File Management Commands](#file-management-commands)
-- [🖥️ HPC Cluster Usage](#hpc-cluster-usage)
-  - [🔗 Connecting to ARC](#connecting-to-arc)
-  - [🚀 Job Submission](#job-submission)
-  - [👀 Job Monitoring](#job-monitoring)
-  - [⚡ Job Management](#job-management)
-- [📦 Project Structure](#project-structure)
-- [🤝 Contributing](#contributing)
-- [📄 License](#license)
+- [Overview](#overview)
+- [Features](#features)
+- [Installation](#installation)
+  - [Environment Setup](#environment-setup)
+- [Usage](#usage)
+  - [Quick Start](#quick-start)
+  - [Command Line Arguments](#command-line-arguments)
+  - [Example Usage](#example-usage)
+- [Development](#development)
+  - [MLflow Integration](#mlflow-integration)
+- [Data Management](#data-management)
+  - [Data Transfer to HPC](#data-transfer-to-hpc)
+  - [File Management Commands](#file-management-commands)
+- [HPC Cluster Usage](#hpc-cluster-usage)
+  - [Connecting to ARC](#connecting-to-arc)
+  - [Job Submission](#job-submission)
+  - [Job Monitoring](#job-monitoring)
+  - [Job Management](#job-management)
+- [Project Structure](#project-structure)
+- [Contributing](#contributing)
+- [License](#license)
 
 ## Overview
 
