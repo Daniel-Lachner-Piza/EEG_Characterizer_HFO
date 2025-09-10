@@ -1,14 +1,9 @@
 <center>
 
-# Automatic Detector of HFO
+![Spectrogram based HFO Detection](docs/Images/HFO_Detection_Explanation.png)
 
 </center>
 
-![Spectrogram based HFO Detection](docs/Images/HFO_Detection_Explanation.png)
-
-# EEG Characterizer HFO
-
-This repo contains the High-Frequency Oscillations (HFO) detector from the Jacobs Lab at the University of Calgary. The detector spectral-based 
 
 ## Table of Contents
 
