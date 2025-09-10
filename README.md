@@ -40,29 +40,53 @@ Our XGBoost-based HFO detector demonstrates excellent performance across trainin
 
 ### Training Performance
 ```mermaid
-xychart-beta
-    title "Training Dataset Performance"
-    x-axis ["AUC-PR (1.000)", "Kappa (0.998)", "Precision (0.997)", "Sensitivity (1.000)", "Specificity (1.000)"]
-    y-axis "Score" 0 --> 1.0
-    bar [1.000, 0.998, 0.997, 1.000, 1.000]
+flowchart LR
+    A["🎯 Training Performance"] 
+    A --> B["AUC-PR<br/>1.000"]
+    A --> C["Kappa<br/>0.998"]
+    A --> D["Precision<br/>0.997"]
+    A --> E["Sensitivity<br/>1.000"]
+    A --> F["Specificity<br/>1.000"]
+    
+    style B fill:#e1f5fe
+    style C fill:#e8f5e8
+    style D fill:#fff3e0
+    style E fill:#fce4ec
+    style F fill:#f3e5f5
 ```
 
 ### Validation Performance
 ```mermaid
-xychart-beta
-    title "Validation Dataset Performance"
-    x-axis ["AUC-PR (0.934)", "Kappa (0.895)", "Precision (0.924)", "Sensitivity (0.869)", "Specificity (0.934)"]
-    y-axis "Score" 0 --> 1.0
-    bar [0.934, 0.895, 0.924, 0.869, 0.934]
+flowchart LR
+    A["🔍 Validation Performance"] 
+    A --> B["AUC-PR<br/>0.934"]
+    A --> C["Kappa<br/>0.895"]
+    A --> D["Precision<br/>0.924"]
+    A --> E["Sensitivity<br/>0.869"]
+    A --> F["Specificity<br/>0.934"]
+    
+    style B fill:#e1f5fe
+    style C fill:#e8f5e8
+    style D fill:#fff3e0
+    style E fill:#fce4ec
+    style F fill:#f3e5f5
 ```
 
 ### Test Performance
 ```mermaid
-xychart-beta
-    title "Test Dataset Performance"
-    x-axis ["AUC-PR (0.935)", "Kappa (0.895)", "Precision (0.923)", "Sensitivity (0.871)", "Specificity (0.935)"]
-    y-axis "Score" 0 --> 1.0
-    bar [0.935, 0.895, 0.923, 0.871, 0.935]
+flowchart LR
+    A["📊 Test Performance"] 
+    A --> B["AUC-PR<br/>0.935"]
+    A --> C["Kappa<br/>0.895"]
+    A --> D["Precision<br/>0.923"]
+    A --> E["Sensitivity<br/>0.871"]
+    A --> F["Specificity<br/>0.935"]
+    
+    style B fill:#e1f5fe
+    style C fill:#e8f5e8
+    style D fill:#fff3e0
+    style E fill:#fce4ec
+    style F fill:#f3e5f5
 ```
 
 ### Performance Summary
