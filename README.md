@@ -151,7 +151,20 @@ cd ~/Projects/EEG_Characterizer_HFO
 uv sync
 ```
 
-#### 4. Activate the Environment
+#### 4. Copy files for classifier model
+```bash
+cp /work/jabos_lab/DetectiorFiles/* ~/Projects/EEG_Characterizer_HFO/hfo_spectral_detector/prediction/
+```
+
+or download files from GoogleDrive and transfer from local computer to ARC:
+  https://drive.google.com/drive/folders/1yUeMmSEcIxKHiqPuXfkrhusDih5uNM5g?usp=drive_link
+```bash
+scp XGB_2025-09-08_23-42_Kappa90.json username@arc.ucalgary.ca:~/Projects/EEG_Characterizer_HFO/hfo_spectral_detector/prediction/
+scp XGB_OptimalThreshold_2025-09-08_23-42_90.json username@arc.ucalgary.ca:~/Projects/EEG_Characterizer_HFO/hfo_spectral_detector/prediction/
+scp XGB_Standard_Scaler_2025-09-08_23-42_Kappa90.bin username@arc.ucalgary.ca:~/Projects/EEG_Characterizer_HFO/hfo_spectral_detector/prediction/
+```
+
+#### Optional: Activate the Environment
 ```bash
 cd ~/Projects/EEG_Characterizer_HFO
 source .venv/bin/activate
