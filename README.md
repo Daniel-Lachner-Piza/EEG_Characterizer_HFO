@@ -45,8 +45,11 @@ xychart-beta
     x-axis ["AUC-PR", "Kappa", "Precision", "Sensitivity", "Specificity"]
     y-axis "Score" 0 --> 1.0
     bar [1.000, 0.998, 0.997, 1.000, 1.000]
-    %% Add data labels
-    text [1.00, 1.00, 1.00, 1.00, 1.00]
+    text "1.000" at 0,1.000
+    text "0.998" at 1,0.998
+    text "0.997" at 2,0.997
+    text "1.000" at 3,1.000
+    text "1.000" at 4,1.000
 ```
 
 ### Validation Performance
@@ -56,8 +59,11 @@ xychart-beta
     x-axis ["AUC-PR", "Kappa", "Precision", "Sensitivity", "Specificity"]
     y-axis "Score" 0 --> 1.0
     bar [0.934, 0.895, 0.924, 0.869, 0.934]
-    %% Add data labels
-    text [0.93, 0.90, 0.92, 0.87, 0.93]
+    text "0.934" at 0,0.934
+    text "0.895" at 1,0.895
+    text "0.924" at 2,0.924
+    text "0.869" at 3,0.869
+    text "0.934" at 4,0.934
 ```
 
 ### Test Performance
@@ -67,8 +73,11 @@ xychart-beta
     x-axis ["AUC-PR", "Kappa", "Precision", "Sensitivity", "Specificity"]
     y-axis "Score" 0 --> 1.0
     bar [0.935, 0.895, 0.923, 0.871, 0.935]
-    %% Add data labels
-    text [0.94, 0.90, 0.92, 0.87, 0.94]
+    text "0.935" at 0,0.935
+    text "0.895" at 1,0.895
+    text "0.923" at 2,0.923
+    text "0.871" at 3,0.871
+    text "0.935" at 4,0.935
 ```
 
 ### Performance Summary
