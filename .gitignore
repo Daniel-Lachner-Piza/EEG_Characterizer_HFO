@@ -8,10 +8,10 @@
 **/Models/
 **/Models2/
 #*.bin
-#hfo_spectral_detector/prediction/*.bin
+hfo_spectral_detector/prediction/*.bin
 *.db
 #*.json
-#hfo_spectral_detector/prediction/*.json
+hfo_spectral_detector/prediction/*.json
 *.npy
 *.csv
 *.log
