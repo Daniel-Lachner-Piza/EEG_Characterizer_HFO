@@ -42,42 +42,27 @@ Our XGBoost-based HFO detector demonstrates excellent performance across trainin
 ```mermaid
 xychart-beta
     title "Training Dataset Performance"
-    x-axis ["AUC-PR", "Kappa", "Precision", "Sensitivity", "Specificity"]
+    x-axis ["AUC-PR (1.000)", "Kappa (0.998)", "Precision (0.997)", "Sensitivity (1.000)", "Specificity (1.000)"]
     y-axis "Score" 0 --> 1.0
     bar [1.000, 0.998, 0.997, 1.000, 1.000]
-    text "1.000" at 0,1.000
-    text "0.998" at 1,0.998
-    text "0.997" at 2,0.997
-    text "1.000" at 3,1.000
-    text "1.000" at 4,1.000
 ```
 
 ### Validation Performance
 ```mermaid
 xychart-beta
     title "Validation Dataset Performance"
-    x-axis ["AUC-PR", "Kappa", "Precision", "Sensitivity", "Specificity"]
+    x-axis ["AUC-PR (0.934)", "Kappa (0.895)", "Precision (0.924)", "Sensitivity (0.869)", "Specificity (0.934)"]
     y-axis "Score" 0 --> 1.0
     bar [0.934, 0.895, 0.924, 0.869, 0.934]
-    text "0.934" at 0,0.934
-    text "0.895" at 1,0.895
-    text "0.924" at 2,0.924
-    text "0.869" at 3,0.869
-    text "0.934" at 4,0.934
 ```
 
 ### Test Performance
 ```mermaid
 xychart-beta
     title "Test Dataset Performance"
-    x-axis ["AUC-PR", "Kappa", "Precision", "Sensitivity", "Specificity"]
+    x-axis ["AUC-PR (0.935)", "Kappa (0.895)", "Precision (0.923)", "Sensitivity (0.871)", "Specificity (0.935)"]
     y-axis "Score" 0 --> 1.0
     bar [0.935, 0.895, 0.923, 0.871, 0.935]
-    text "0.935" at 0,0.935
-    text "0.895" at 1,0.895
-    text "0.923" at 2,0.923
-    text "0.871" at 3,0.871
-    text "0.935" at 4,0.935
 ```
 
 ### Performance Summary
