@@ -45,6 +45,8 @@ xychart-beta
     x-axis ["AUC-PR", "Kappa", "Precision", "Sensitivity", "Specificity"]
     y-axis "Score" 0 --> 1.0
     bar [1.000, 0.998, 0.997, 1.000, 1.000]
+    %% Add data labels
+    text [1.00, 1.00, 1.00, 1.00, 1.00]
 ```
 
 ### Validation Performance
@@ -54,6 +56,8 @@ xychart-beta
     x-axis ["AUC-PR", "Kappa", "Precision", "Sensitivity", "Specificity"]
     y-axis "Score" 0 --> 1.0
     bar [0.934, 0.895, 0.924, 0.869, 0.934]
+    %% Add data labels
+    text [0.93, 0.90, 0.92, 0.87, 0.93]
 ```
 
 ### Test Performance
@@ -63,6 +67,8 @@ xychart-beta
     x-axis ["AUC-PR", "Kappa", "Precision", "Sensitivity", "Specificity"]
     y-axis "Score" 0 --> 1.0
     bar [0.935, 0.895, 0.923, 0.871, 0.935]
+    %% Add data labels
+    text [0.94, 0.90, 0.92, 0.87, 0.94]
 ```
 
 ### Performance Summary
@@ -75,7 +81,7 @@ xychart-beta
 | **Sensitivity** | 1.000 | 0.869 | 0.871 |
 | **Specificity** | 1.000 | 0.934 | 0.935 |
 
-The model shows excellent generalization with consistent performance across all datasets, achieving:
+The model shows very good generalization:
 - **High Precision** (~92%): Low false positive rate
 - **Good Sensitivity** (~87%): Effective HFO detection
 - **High Specificity** (~93%): Accurate rejection of non-HFO events
