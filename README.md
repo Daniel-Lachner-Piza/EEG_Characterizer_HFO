@@ -4,7 +4,7 @@
 
 </center>
 
-![Matlab](docs/Images/HFO_Detection_Explanation.png)
+![Spectrogram based HFO Detection](docs/Images/HFO_Detection_Explanation.png)
 
 # EEG Characterizer HFO
 
