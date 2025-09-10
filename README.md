@@ -153,7 +153,8 @@ uv sync
 
 #### 4. Copy files for classifier model
 ```bash
-cp /work/jabos_lab/DetectiorFiles/* ~/Projects/EEG_Characterizer_HFO/hfo_spectral_detector/prediction/
+cp /work/jacobs_lab/DetectorFiles/* ~/Projects/EEG_Characterizer_HFO/hfo
+_spectral_detector/prediction/
 ```
 
 or download files from GoogleDrive and transfer from local computer to ARC:
