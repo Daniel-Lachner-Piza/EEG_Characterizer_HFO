@@ -1,6 +1,6 @@
 # Unit Tests for EEG Characterizer HFO Detection
 
-This directory contains comprehensive unit tests for the EEG Characterizer HFO Detection system, covering all methods called directly or indirectly by `run_eeg_hfo_characterize_detect.py`.
+This directory contains unit tests for the EEG characterization and subsequent HFO detection
 
 ## Test Structure
 
