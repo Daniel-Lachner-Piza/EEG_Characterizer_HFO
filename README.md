@@ -42,7 +42,7 @@ Our XGBoost-based HFO detector demonstrates excellent performance across trainin
 ```mermaid
 xychart-beta
     title "AUC-PR Performance Comparison"
-    x-axis ["Training (1.00)", "Validation (0.93)", "Test (0.94)"]
+    x-axis ["Training<br>(1.00)", "Validation<br>(0.93)", "Test<br>(0.94)"]
     y-axis "AUC-PR Score" 0.5 --> 1.0
     bar "Training (1.00)" [1.000, 0, 0]
     bar "Validation (0.93)" [0, 0.934, 0]
@@ -53,7 +53,7 @@ xychart-beta
 ```mermaid
 xychart-beta
     title "Kappa Performance Comparison"
-    x-axis ["Training (1.00)", "Validation (0.90)", "Test (0.90)"]
+    x-axis ["Training<br>(1.00)", "Validation<br>(0.90)", "Test<br>(0.90)"]
     y-axis "Kappa Score" 0.5 --> 1.0
     bar "Training (1.00)" [0.998, 0, 0]
     bar "Validation (0.90)" [0, 0.895, 0]
@@ -64,7 +64,7 @@ xychart-beta
 ```mermaid
 xychart-beta
     title "Precision Performance Comparison"
-    x-axis ["Training (1.00)", "Validation (0.92)", "Test (0.92)"]
+    x-axis ["Training<br>(1.00)", "Validation<br>(0.92)", "Test<br>(0.92)"]
     y-axis "Precision Score" 0.5 --> 1.0
     bar "Training (1.00)" [0.997, 0, 0]
     bar "Validation (0.92)" [0, 0.924, 0]
@@ -75,7 +75,7 @@ xychart-beta
 ```mermaid
 xychart-beta
     title "Sensitivity Performance Comparison"
-    x-axis ["Training (1.00)", "Validation (0.87)", "Test (0.87)"]
+    x-axis ["Training<br>(1.00)", "Validation<br>(0.87)", "Test<br>(0.87)"]
     y-axis "Sensitivity Score" 0.5 --> 1.0
     bar "Training (1.00)" [1.000, 0, 0]
     bar "Validation (0.87)" [0, 0.869, 0]
@@ -86,7 +86,7 @@ xychart-beta
 ```mermaid
 xychart-beta
     title "Specificity Performance Comparison"
-    x-axis ["Training (1.00)", "Validation (0.93)", "Test (0.94)"]
+    x-axis ["Training<br>(1.00)", "Validation<br>(0.93)", "Test<br>(0.94)"]
     y-axis "Specificity Score" 0.5 --> 1.0
     bar "Training (1.00)" [1.000, 0, 0]
     bar "Validation (0.93)" [0, 0.934, 0]
