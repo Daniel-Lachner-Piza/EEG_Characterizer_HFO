@@ -38,55 +38,49 @@ This tool provides automated detection and characterization of High-Frequency Os
 
 Our XGBoost-based HFO detector demonstrates excellent performance across training, validation, and test datasets:
 
-### Training Performance
+### AUC-PR Performance
 ```mermaid
-flowchart LR
-    A["🎯 Training Performance"] 
-    A --> B["AUC-PR<br/>1.000"]
-    A --> C["Kappa<br/>0.998"]
-    A --> D["Precision<br/>0.997"]
-    A --> E["Sensitivity<br/>1.000"]
-    A --> F["Specificity<br/>1.000"]
-    
-    style B fill:#e1f5fe
-    style C fill:#e8f5e8
-    style D fill:#fff3e0
-    style E fill:#fce4ec
-    style F fill:#f3e5f5
+xychart-beta
+    title "AUC-PR Performance Comparison"
+    x-axis ["Training", "Validation", "Test"]
+    y-axis "AUC-PR Score" 0.8 --> 1.0
+    bar [1.000, 0.934, 0.935]
 ```
 
-### Validation Performance
+### Kappa Performance
 ```mermaid
-flowchart LR
-    A["🔍 Validation Performance"] 
-    A --> B["AUC-PR<br/>0.934"]
-    A --> C["Kappa<br/>0.895"]
-    A --> D["Precision<br/>0.924"]
-    A --> E["Sensitivity<br/>0.869"]
-    A --> F["Specificity<br/>0.934"]
-    
-    style B fill:#e1f5fe
-    style C fill:#e8f5e8
-    style D fill:#fff3e0
-    style E fill:#fce4ec
-    style F fill:#f3e5f5
+xychart-beta
+    title "Kappa Performance Comparison"
+    x-axis ["Training", "Validation", "Test"]
+    y-axis "Kappa Score" 0.8 --> 1.0
+    bar [0.998, 0.895, 0.895]
 ```
 
-### Test Performance
+### Precision Performance
 ```mermaid
-flowchart LR
-    A["📊 Test Performance"] 
-    A --> B["AUC-PR<br/>0.935"]
-    A --> C["Kappa<br/>0.895"]
-    A --> D["Precision<br/>0.923"]
-    A --> E["Sensitivity<br/>0.871"]
-    A --> F["Specificity<br/>0.935"]
-    
-    style B fill:#e1f5fe
-    style C fill:#e8f5e8
-    style D fill:#fff3e0
-    style E fill:#fce4ec
-    style F fill:#f3e5f5
+xychart-beta
+    title "Precision Performance Comparison"
+    x-axis ["Training", "Validation", "Test"]
+    y-axis "Precision Score" 0.8 --> 1.0
+    bar [0.997, 0.924, 0.923]
+```
+
+### Sensitivity Performance
+```mermaid
+xychart-beta
+    title "Sensitivity Performance Comparison"
+    x-axis ["Training", "Validation", "Test"]
+    y-axis "Sensitivity Score" 0.8 --> 1.0
+    bar [1.000, 0.869, 0.871]
+```
+
+### Specificity Performance
+```mermaid
+xychart-beta
+    title "Specificity Performance Comparison"
+    x-axis ["Training", "Validation", "Test"]
+    y-axis "Specificity Score" 0.8 --> 1.0
+    bar [1.000, 0.934, 0.935]
 ```
 
 ### Performance Summary
