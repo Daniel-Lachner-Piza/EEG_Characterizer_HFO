@@ -214,12 +214,12 @@ class HFO_Detector:
             return detected_hfo_contours_df, elpi_hfo_detections_df, None
                 
         # Save HFO detections in Elpi format
-        try:
-            write_elpi_file(elpi_hfo_detections_df, elpi_hfo_marks_fpath)
-            print(f"Saved {len(elpi_hfo_detections_df)} HFO detections to {elpi_hfo_marks_fpath}")
-            logger.info(f"Saved {len(elpi_hfo_detections_df)} HFO detections to {elpi_hfo_marks_fpath}")
-        except Exception as e:
-            raise RuntimeError(f"Error saving ELPI file: {str(e)}")
+        #try:
+        #    write_elpi_file(elpi_hfo_detections_df, elpi_hfo_marks_fpath)
+        #    print(f"Saved {len(elpi_hfo_detections_df)} HFO detections to {elpi_hfo_marks_fpath}")
+        #    logger.info(f"Saved {len(elpi_hfo_detections_df)} HFO detections to {elpi_hfo_marks_fpath}")
+        #except Exception as e:
+        #    raise RuntimeError(f"Error saving ELPI file: {str(e)}")
         
         # Chracterize each elpi HFO event
         try:
