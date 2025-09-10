@@ -3,7 +3,7 @@
 **/mlruns/
 *.jpg
 *.jpeg
-*.png
+#*.png
 *.gif
 **/Models/
 **/Models2/
