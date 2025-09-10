@@ -6,6 +6,11 @@ This repo contains the High-Frequency Oscillations (HFO) detector from the Jacob
 ## Table of Contents
 
 - [Overview](#overview)
+- [Performance Metrics](#performance-metrics)
+  - [Training Performance](#training-performance)
+  - [Validation Performance](#validation-performance)
+  - [Test Performance](#test-performance)
+  - [Performance Summary](#performance-summary)
 - [Features](#features)
 - [Installation](#installation)
   - [Environment Setup](#environment-setup)
@@ -24,12 +29,57 @@ This repo contains the High-Frequency Oscillations (HFO) detector from the Jacob
   - [Job Monitoring](#job-monitoring)
   - [Job Management](#job-management)
 - [Project Structure](#project-structure)
-- [Contributing](#contributing)
-- [License](#license)
 
 ## Overview
 
 This tool provides automated detection and characterization of High-Frequency Oscillations (HFOs) in EEG data using spectral analysis. It supports various EEG formats and montage configurations for comprehensive neurophysiological analysis.
+
+## Performance Metrics
+
+Our XGBoost-based HFO detector demonstrates excellent performance across training, validation, and test datasets:
+
+### Training Performance
+```mermaid
+xychart-beta
+    title "Training Dataset Performance"
+    x-axis ["AUC-PR", "Kappa", "Precision", "Sensitivity", "Specificity"]
+    y-axis "Score" 0 --> 1.0
+    bar [1.000, 0.998, 0.997, 1.000, 1.000]
+```
+
+### Validation Performance
+```mermaid
+xychart-beta
+    title "Validation Dataset Performance"
+    x-axis ["AUC-PR", "Kappa", "Precision", "Sensitivity", "Specificity"]
+    y-axis "Score" 0 --> 1.0
+    bar [0.934, 0.895, 0.924, 0.869, 0.934]
+```
+
+### Test Performance
+```mermaid
+xychart-beta
+    title "Test Dataset Performance"
+    x-axis ["AUC-PR", "Kappa", "Precision", "Sensitivity", "Specificity"]
+    y-axis "Score" 0 --> 1.0
+    bar [0.935, 0.895, 0.923, 0.871, 0.935]
+```
+
+### Performance Summary
+
+| Metric | Training | Validation | Test |
+|--------|----------|------------|------|
+| **AUC-PR** | 1.000 | 0.934 | 0.935 |
+| **Kappa** | 0.998 | 0.895 | 0.895 |
+| **Precision** | 0.997 | 0.924 | 0.923 |
+| **Sensitivity** | 1.000 | 0.869 | 0.871 |
+| **Specificity** | 1.000 | 0.934 | 0.935 |
+
+The model shows excellent generalization with consistent performance across all datasets, achieving:
+- **High Precision** (~92%): Low false positive rate
+- **Good Sensitivity** (~87%): Effective HFO detection
+- **High Specificity** (~93%): Accurate rejection of non-HFO events
+- **Strong Kappa** (~90%): Excellent agreement beyond chance
 
 ## Features
 
@@ -339,9 +389,3 @@ EEG_Characterizer_HFO/
 ├── pyproject.toml              # Project configuration
 └── README.md                   # This file
 ```
-
-# SLURM Filename Patterns Used:
-%u - Username
-%N - Node name
-%x - Job name (now includes username and node)
-%j - Job ID
