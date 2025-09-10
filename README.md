@@ -1,3 +1,10 @@
+<center>
+
+# Automatic Detector of HFO
+
+</center>
+
+![Matlab](docs/Images/HFO_Detection_Explanation.png)
 
 # EEG Characterizer HFO
 
@@ -33,6 +40,8 @@ This repo contains the High-Frequency Oscillations (HFO) detector from the Jacob
 ## Overview
 
 This tool provides automated detection and characterization of High-Frequency Oscillations (HFOs) in EEG data using spectral analysis. It supports various EEG formats and montage configurations for comprehensive neurophysiological analysis.
+
+HFO_Detection_Explanation.png
 
 ## Performance Metrics
 
