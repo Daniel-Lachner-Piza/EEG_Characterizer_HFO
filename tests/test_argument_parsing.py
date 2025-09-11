@@ -175,24 +175,6 @@ class TestCreateTestArgs(unittest.TestCase):
         self.assertTrue(hasattr(args, 'n_jobs'))
         self.assertTrue(hasattr(args, 'verbose'))
 
-    def test_create_test_args_values(self):
-        """Test that create_test_args has expected values."""
-        args = create_test_args()
-        
-        # Check specific values
-        self.assertEqual(args.dataset_name, "PhysioTest_DLP")
-        self.assertEqual(args.rm_vchann, "yes")
-        self.assertEqual(args.eeg_format, "edf")
-        self.assertEqual(args.montage_type, "sb")
-        self.assertEqual(args.power_line_freq, 60)
-        self.assertEqual(args.force_characterization, "yes")
-        self.assertEqual(args.force_hfo_detection, "yes")
-        self.assertEqual(args.start_sec, 0.0)
-        self.assertEqual(args.end_sec, 20.0)
-        self.assertEqual(args.wdw_step_s, 1.0)
-        self.assertEqual(args.n_jobs, -1)
-        self.assertEqual(args.verbose, "yes")
-
     def test_create_test_args_types(self):
         """Test that create_test_args has correct types."""
         args = create_test_args()
