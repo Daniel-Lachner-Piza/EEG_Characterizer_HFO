@@ -4,7 +4,7 @@
 # Usage: ./rename_edf_extensions.sh
 
 # Set the target directory
-TARGET_DIR="/work/jacobs_lab/EEG_Data/Clustering_Patho_HFO"
+TARGET_DIR="/work/jacobs_lab/EEG_Data/Clustering_Patho_HFO" # Change this to your path containing EDF files
 
 # Check if directory exists
 if [ ! -d "$TARGET_DIR" ]; then
