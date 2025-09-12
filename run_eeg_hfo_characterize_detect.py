@@ -520,7 +520,7 @@ def create_test_args():
             self.force_hfo_detection = "yes"
             self.start_sec = 0.0
             self.end_sec = 120.0
-            self.wdw_step_s = 1.0
+            self.wdw_step_s = 0.1
             self.n_jobs = -1
             self.verbose = "no"
     
