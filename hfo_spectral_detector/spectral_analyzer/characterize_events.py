@@ -6,6 +6,7 @@ import logging
 import gc
 from pathlib import Path
 from typing import List
+from contextlib import contextmanager
 
 import matplotlib as mpl
 #mpl.use("TkAgg")
@@ -33,6 +34,18 @@ from hfo_spectral_detector.eeg_io.eeg_io import EEG_IO
 
 
 logger = logging.getLogger(__name__)
+
+
+@contextmanager
+def timing_context(operation_name: str, logger: logging.Logger):
+    """Context manager for timing operations."""
+    start_time = time.time()
+    try:
+        yield
+    finally:
+        elapsed_time = time.time() - start_time
+        logger.info(f"{operation_name} completed in {elapsed_time:.2f} seconds")
+        print(f"{operation_name} completed in {elapsed_time:.2f} seconds")
 
 COLORMAP = mpl.cm.viridis
 
@@ -96,33 +109,28 @@ def characterize_events(pat_name: str, eeg_reader: EEG_IO, mtgs_to_detect:List[P
     mtg_signals = eeg_reader.get_data()
     for i, mtg in enumerate(mtg_labels):   
         try:
-            start_time = time.time()
-
-            if mtgs_to_detect is not None and len(mtgs_to_detect) > 0:
-                if mtg.lower() not in mtgs_to_detect:
-                    logger.info(f"Skipping channel {mtg} as it is not in the list of channels to detect")
-                    if verbose:
-                        print(f"Skipping channel {mtg} as it is not in the list of channels to detect")
-                    continue
-        
-            #ch_data_idx = np.argwhere(mtg == mtg_eeg_data['mtg_labels']).squeeze()
-            ch_data_idx = np.argwhere([mtg == this_ls_mtg for this_ls_mtg in mtg_labels])[0][0]
-            assert mtg_labels[ch_data_idx] == mtg, "Incorrect channel data index"            
-            channel_specific_characterization(\
-                pat_name=pat_name, \
-                fs=eeg_reader.fs, \
-                screen_size = screen_size, \
-                mtg_signal=mtg_signals[ch_data_idx], \
-                mtg=mtg, an_wdws_dict=an_wdws_dict, \
-                out_path=new_out_path, \
-                power_line_freqs=power_line_freqs, \
-                n_jobs=n_jobs, force_recalc=force_recalc, save_spect_img=save_spect_img, \
-                verbose=verbose\
+            with timing_context(f"Processing channel {mtg} ({i+1}/{len(mtg_labels)})", logger):
+                if mtgs_to_detect is not None and len(mtgs_to_detect) > 0:
+                    if mtg.lower() not in mtgs_to_detect:
+                        logger.info(f"Skipping channel {mtg} as it is not in the list of channels to detect")
+                        if verbose:
+                            print(f"Skipping channel {mtg} as it is not in the list of channels to detect")
+                        continue
+            
+                #ch_data_idx = np.argwhere(mtg == mtg_eeg_data['mtg_labels']).squeeze()
+                ch_data_idx = np.argwhere([mtg == this_ls_mtg for this_ls_mtg in mtg_labels])[0][0]
+                assert mtg_labels[ch_data_idx] == mtg, "Incorrect channel data index"            
+                channel_specific_characterization(\
+                    pat_name=pat_name, \
+                    fs=eeg_reader.fs, \
+                    screen_size = screen_size, \
+                    mtg_signal=mtg_signals[ch_data_idx], \
+                    mtg=mtg, an_wdws_dict=an_wdws_dict, \
+                    out_path=new_out_path, \
+                    power_line_freqs=power_line_freqs, \
+                    n_jobs=n_jobs, force_recalc=force_recalc, save_spect_img=save_spect_img, \
+                    verbose=verbose\
                 )
-
-            logger.info(f"{pat_name} --- {mtg} --- ProcessingTime: {time.time()-start_time} --- Progress: {i+1}/{len(mtg_labels)} --- {(i+1)/len(mtg_labels)*100:.2f}%")
-            if verbose:
-                print(f"{pat_name} --- {mtg} --- ProcessingTime: {time.time()-start_time} --- Progress: {i+1}/{len(mtg_labels)} --- {(i+1)/len(mtg_labels)*100:.2f}%")
         except Exception as e:
             logger.error(f"Error in channel {i}.{mtg}: {e}")
             if verbose:
@@ -168,20 +176,20 @@ def channel_specific_characterization(pat_name: str, fs: float, screen_size:tupl
                 mtg_signal = convolve1d(np.flip(mtg_signal), notch_coeffs)
         
         # Bandpass filter
-        ntaps = 256
-        bp_cutoff_l = 80
-        bp_cutoff_h = int(np.round(fs/3))
-        bp_filter_coeffs = firwin(ntaps, [bp_cutoff_l, bp_cutoff_h], width=None, window='hamming', pass_zero='bandpass', fs=fs)
-        bp_signal = convolve1d(np.flip(mtg_signal), bp_filter_coeffs)
-        bp_signal = convolve1d(np.flip(bp_signal), bp_filter_coeffs)
+        with timing_context(f"\nBandpass filtering for {mtg}", logger):
+            ntaps = 256
+            bp_cutoff_l = 80
+            bp_cutoff_h = int(np.round(fs/3))
+            bp_filter_coeffs = firwin(ntaps, [bp_cutoff_l, bp_cutoff_h], width=None, window='hamming', pass_zero='bandpass', fs=fs)
+            bp_signal = convolve1d(np.flip(mtg_signal), bp_filter_coeffs)
+            bp_signal = convolve1d(np.flip(bp_signal), bp_filter_coeffs)
 
         # Obtain the Morlet Wavelet Transform from the raw signal
-        wvlt_nr_cycles = 6
-        start_time = time.time()
-        cmwt_freqs, dcwt = dcmwt(
-            bp_signal, fs, dcmwt_freqs, nr_cycles=wvlt_nr_cycles)
-        #dcwt = dcwt*1000
-        logger.info(f"DLP DCWT total_time={time.time()-start_time}")
+        with timing_context(f"Wavelet transform for {mtg}", logger):
+            wvlt_nr_cycles = 6
+            cmwt_freqs, dcwt = dcmwt(
+                bp_signal, fs, dcmwt_freqs, nr_cycles=wvlt_nr_cycles)
+            #dcwt = dcwt*1000
 
         # Select events from the current channel
         chann_events_start = an_wdws_dict['start']
@@ -200,6 +208,7 @@ def channel_specific_characterization(pat_name: str, fs: float, screen_size:tupl
         logger.info(f"Using {n_jobs} parallel jobs")
         if verbose:
             print(f"Using {n_jobs} parallel jobs")
+        
         parallel = Parallel(n_jobs=n_jobs, return_as="list")
         wdw_objects_feats_ls = parallel(
                             delayed(hfo_spectro_bp_wdw_analysis)
@@ -225,13 +234,41 @@ def channel_specific_characterization(pat_name: str, fs: float, screen_size:tupl
         if verbose:
             print(f"Total nr. contour objects: {tot_nr_contour_objs}")
         
+        # Debug: Check what types we got back from parallel processing
+        logger.info(f"Parallel processing returned {len(wdw_objects_feats_ls)} results")
+        type_counts = {}
+        for item in wdw_objects_feats_ls:
+            item_type = type(item).__name__
+            type_counts[item_type] = type_counts.get(item_type, 0) + 1
+        logger.info(f"Return types: {type_counts}")
+        
         # while len(wdw_objects_feats_ls) != 0:
         #     wdw_contours_df = wdw_objects_feats_ls.pop(0)
         #     if len(wdw_contours_df)>0:
         #         ch_contours_df = pd.concat([ch_contours_df, wdw_contours_df], ignore_index=True)
         if len(wdw_objects_feats_ls) > 0:
             try:
-                ch_contours_df = pd.concat(wdw_objects_feats_ls, ignore_index=True)
+                # Filter out invalid results before concatenation
+                valid_dfs = []
+                for item in wdw_objects_feats_ls:
+                    if isinstance(item, pd.DataFrame) and not item.empty:
+                        # Ensure all DataFrames have consistent columns
+                        if len(valid_dfs) == 0:
+                            valid_dfs.append(item)
+                        else:
+                            # Check if columns match the first valid DataFrame
+                            if list(item.columns) == list(valid_dfs[0].columns):
+                                valid_dfs.append(item)
+                            else:
+                                logger.warning(f"Skipping DataFrame with mismatched columns in {mtg}")
+                
+                if valid_dfs:
+                    ch_contours_df = pd.concat(valid_dfs, ignore_index=True)
+                    logger.info(f"Successfully concatenated {len(valid_dfs)} valid DataFrames")
+                else:
+                    logger.info(f"No valid DataFrames to concatenate in {mtg}")
+                    ch_contours_df = pd.DataFrame()
+                    
             except Exception as e:
                 #ram_usage = psutil.virtual_memory()[3]/1000000000
                 logger.error(f"Error in channel {mtg}: {e}")
@@ -255,15 +292,30 @@ def channel_specific_characterization(pat_name: str, fs: float, screen_size:tupl
 
                         if isinstance(wdw_contours_df, pd.DataFrame) and len(wdw_contours_df)>0:
                             try:
-                                nr_nans = 0
-                                for col_name in wdw_contours_df.columns:
-                                    nr_nans += wdw_contours_df[col_name].isna().sum()
+                                # Check column consistency with first valid DataFrame
+                                if len(assembled_events_ls) == 0:
+                                    # First valid DataFrame - check for NaNs
+                                    nr_nans = 0
+                                    for col_name in wdw_contours_df.columns:
+                                        nr_nans += wdw_contours_df[col_name].isna().sum()
 
-                                if nr_nans == 0:
-                                    assembled_events_ls.append(wdw_contours_df)
-                                    pass
+                                    if nr_nans == 0:
+                                        assembled_events_ls.append(wdw_contours_df)
+                                    else:
+                                        logger.info(f"{nr_nans} NaNs found at wdw index {aei} in {mtg}")
                                 else:
-                                    logger.info(f"{nr_nans} NaNs found at wdw index {aei} in {mtg}")
+                                    # Check column consistency and NaNs
+                                    if list(wdw_contours_df.columns) == list(assembled_events_ls[0].columns):
+                                        nr_nans = 0
+                                        for col_name in wdw_contours_df.columns:
+                                            nr_nans += wdw_contours_df[col_name].isna().sum()
+
+                                        if nr_nans == 0:
+                                            assembled_events_ls.append(wdw_contours_df)
+                                        else:
+                                            logger.info(f"{nr_nans} NaNs found at wdw index {aei} in {mtg}")
+                                    else:
+                                        logger.warning(f"Skipping DataFrame with mismatched columns at index {aei} in {mtg}")
 
                             except Exception as eapp:
                                 logger.error(f"Error when appending wdw_contours_df{aei}: {eapp}")
@@ -344,42 +396,21 @@ def hfo_spectro_bp_wdw_analysis(\
     th_idx = 0
     cwt_th_val_str = str(th_idx)
 
-    #start_time = time.time()
     #convert figure to an RGBA array using matplotlib
-    use_matplotlib = True
-    if use_matplotlib:
-        cmap = mpl.cm.jet
-        norm = mpl.colors.Normalize(vmin=np.min(an_dcwt), vmax=np.max(an_dcwt), clip=False)
-        colors = cmap(norm(an_dcwt))
-        spect_int = (colors*255).astype('uint8')[:,:,0:3]
-        spect_bgr = spect_int[:,:,0:3].copy()
-        spect_bgr[:,:,0] = spect_int[:,:,0:3][:,:,2]
-        spect_bgr[:,:,1] = spect_int[:,:,0:3][:,:,1]
-        spect_bgr[:,:,2] = spect_int[:,:,0:3][:,:,0]
-        spect_bgr = np.flipud(spect_bgr)
-        pass
-    else:
-        # #convert figure to an RGBA array using silx
-        # spect = apply_colormap(
-        #     data=an_dcwt,
-        #     colormap='temperature', #"viridis", "cividis", "magma", "inferno", "plasma", "temperature"
-        #     norm = "linear", # linear, gamma, log, sqrt, arcsinh
-        #     vmin=np.min(an_dcwt), 
-        #     vmax=np.percentile(an_dcwt, 99.85),
-        #     #autoscale="minmax" # vmin=np.min(an_dcwt), vmax=np.percentile(an_dcwt, 99.9),
-        # )       
-        # spect_bgr = spect[:,:,0:3].copy()
-        # spect_bgr[:,:,0] = spect[:,:,0:3][:,:,2]
-        # spect_bgr[:,:,1] = spect[:,:,0:3][:,:,1]
-        # spect_bgr[:,:,2] = spect[:,:,0:3][:,:,0]
-        # spect_bgr = np.flipud(spect_bgr)
-        pass
+    cmap = mpl.cm.jet
+    norm = mpl.colors.Normalize(vmin=np.min(an_dcwt), vmax=np.max(an_dcwt), clip=False)
+    colors = cmap(norm(an_dcwt))
+    spect_int = (colors*255).astype('uint8')[:,:,0:3]
+    spect_bgr = spect_int[:,:,0:3].copy()
+    spect_bgr[:,:,0] = spect_int[:,:,0:3][:,:,2]
+    spect_bgr[:,:,1] = spect_int[:,:,0:3][:,:,1]
+    spect_bgr[:,:,2] = spect_int[:,:,0:3][:,:,0]
+    spect_bgr = np.flipud(spect_bgr)
 
-    #print(f"Spectrograms_Generation total_time={time.time()-start_time}")
+
 
     # Perform Computer Vision analysis of the spectrogram
-
-    #start_time = time.time()
+    #with timing_context(f"HFO spectral analysis for {mtg}", logger):
     fig_title = f"{mtg}--{np.min(an_time):.1f}-{np.max(an_time):.1f}s" +  "_th" + cwt_th_val_str
     cwt_range_Hz = (int(dcmwt_freqs[0]), int(dcmwt_freqs[-1]))
     objects, wdw_contours_df = hfo_spectral_analysis(spect_bgr, int(fs), wdw_duration_ms=int(an_duration_ms), cwt_range_Hz=cwt_range_Hz, plot_ok=save_spect_img, fig_title=fig_title, out_path=out_path)
@@ -467,8 +498,6 @@ def hfo_spectro_bp_wdw_analysis(\
     # Iterate through all contours in analysis window
     # Get the features from each contour based on the band-passed signal
     #bp_loop_st = time.time()
-    get_bp_features_time_cum = 0
-    get_other_spectral_features_time_cum = 0
     tp_cnt = 0
     fp_cnt = 0
     tn_cnt = 0
@@ -476,98 +505,92 @@ def hfo_spectro_bp_wdw_analysis(\
     bp_ok_present = False 
     for idx in np.arange(nr_wdw_objects):
         this_hfo_freq = wdw_contours_df.at[idx, 'freq_centroid_Hz']
-        this_hfo_max_freq = wdw_contours_df.at[idx, 'freq_max_Hz']
-        this_hfo_min_freq = wdw_contours_df.at[idx, 'freq_min_Hz']
-        this_hfo_dur_ms = wdw_contours_df.at[idx, 'dur_ms']
+    this_hfo_max_freq = wdw_contours_df.at[idx, 'freq_max_Hz']
+    this_hfo_min_freq = wdw_contours_df.at[idx, 'freq_min_Hz']
+    this_hfo_dur_ms = wdw_contours_df.at[idx, 'dur_ms']
 
-        this_hfo_start_ms = wdw_contours_df.at[idx, 'start_ms']
-        this_hfo_end_ms = wdw_contours_df.at[idx, 'end_ms']
-        this_hfo_center_ms = wdw_contours_df.at[idx, 'center_ms']
+    this_hfo_start_ms = wdw_contours_df.at[idx, 'start_ms']
+    this_hfo_end_ms = wdw_contours_df.at[idx, 'end_ms']
+    this_hfo_center_ms = wdw_contours_df.at[idx, 'center_ms']
 
-        overlap_a = np.logical_and(wdw_contours_df['end_ms'] >= this_hfo_start_ms, wdw_contours_df['end_ms'] <= this_hfo_end_ms)
-        overlap_b = np.logical_and(wdw_contours_df['start_ms'] >= this_hfo_start_ms, wdw_contours_df['start_ms'] <= this_hfo_end_ms)
-        overlap_c = np.logical_and(this_hfo_start_ms >= wdw_contours_df['start_ms'], this_hfo_end_ms <= wdw_contours_df['end_ms'])
-        nr_overlapping_objs = np.sum(np.logical_or(np.logical_or(overlap_a, overlap_b), overlap_c))-1
-        wdw_contours_df.at[idx, 'nr_overlapping_objs'] = nr_overlapping_objs
+    overlap_a = np.logical_and(wdw_contours_df['end_ms'] >= this_hfo_start_ms, wdw_contours_df['end_ms'] <= this_hfo_end_ms)
+    overlap_b = np.logical_and(wdw_contours_df['start_ms'] >= this_hfo_start_ms, wdw_contours_df['start_ms'] <= this_hfo_end_ms)
+    overlap_c = np.logical_and(this_hfo_start_ms >= wdw_contours_df['start_ms'], this_hfo_end_ms <= wdw_contours_df['end_ms'])
+    nr_overlapping_objs = np.sum(np.logical_or(np.logical_or(overlap_a, overlap_b), overlap_c))-1
+    wdw_contours_df.at[idx, 'nr_overlapping_objs'] = nr_overlapping_objs
 
-        contour_ss = int(fs*(this_hfo_start_ms-an_start_ms)/1000)
-        contour_se = int(fs*(this_hfo_end_ms-an_start_ms)/1000)
-        contour_sc = int(fs*(this_hfo_center_ms)/1000)
+    contour_ss = int(fs*(this_hfo_start_ms-an_start_ms)/1000)
+    contour_se = int(fs*(this_hfo_end_ms-an_start_ms)/1000)
+    contour_sc = int(fs*(this_hfo_center_ms)/1000)
 
-        # If there is strong power line noise only 1 huge blob will be detected and it will have the same duration as teh whole analysis window
-        if contour_ss==0 and contour_se==len(an_raw_signal):
-            return []
-    
-        # Check if contour object is within a visual mark
-        obj_visual_valid = False
+    # If there is strong power line noise only 1 huge blob will be detected and it will have the same duration as teh whole analysis window
+    if contour_ss==0 and contour_se==len(an_raw_signal):
+        return pd.DataFrame()
 
-        if contour_ss < 0:
-            contour_ss = 0
-        if contour_se > len(an_raw_signal):
-            contour_se = len(an_raw_signal)
+    # Check if contour object is within a visual mark
+    obj_visual_valid = False
 
-        contour_dcmwt =  an_dcwt[:, contour_ss:contour_se]
-        contour_raw_sig = an_raw_signal[contour_ss:contour_se]
-        contour_bp_sig = an_bp_signal[contour_ss:contour_se]
-        contour_time = an_time[contour_ss:contour_se]
+    if contour_ss < 0:
+        contour_ss = 0
+    if contour_se > len(an_raw_signal):
+        contour_se = len(an_raw_signal)
+
+    #contour_dcmwt =  an_dcwt[:, contour_ss:contour_se]
+    contour_raw_sig = an_raw_signal[contour_ss:contour_se]
+    contour_bp_sig = an_bp_signal[contour_ss:contour_se]
+    contour_time = an_time[contour_ss:contour_se]
 
 
-        # get band-passed EEG features
-        #bp_feats_st = time.time()
-        bp_feats, start_sample_correction, end_sample_correction, all_relevant_peaks_loc, prom_peaks_loc, contour_obj_avg_ampl, prom_peaks_height_th = get_bp_features(fs=fs, bp_signal = contour_bp_sig, hfo_freqs=(this_hfo_min_freq, this_hfo_freq, this_hfo_max_freq))
-        inverted_bp_feats, _, _, _, _, _, _ = get_bp_features(fs=fs, bp_signal=scale_array(contour_bp_sig*-1), hfo_freqs=(this_hfo_min_freq, this_hfo_freq, this_hfo_max_freq))
-        contour_ss = contour_ss+start_sample_correction
-        contour_se = contour_se-end_sample_correction
-        assert contour_ss < len(an_raw_signal), "Incorrect contour_ss"
-        assert contour_se > 0, "Incorrect contour_se"
+    # get band-passed EEG features
+    #bp_feats_st = time.time()
+    bp_feats, start_sample_correction, end_sample_correction, all_relevant_peaks_loc, prom_peaks_loc, contour_obj_avg_ampl, prom_peaks_height_th = get_bp_features(fs=fs, bp_signal = contour_bp_sig, hfo_freqs=(this_hfo_min_freq, this_hfo_freq, this_hfo_max_freq))
+    inverted_bp_feats, _, _, _, _, _, _ = get_bp_features(fs=fs, bp_signal=scale_array(contour_bp_sig*-1), hfo_freqs=(this_hfo_min_freq, this_hfo_freq, this_hfo_max_freq))
+    contour_ss = contour_ss+start_sample_correction
+    contour_se = contour_se-end_sample_correction
+    assert contour_ss < len(an_raw_signal), "Incorrect contour_ss"
+    assert contour_se > 0, "Incorrect contour_se"
 
-        bkgrnd_sel = np.r_[0:contour_ss, contour_se:len(an_bp_signal)]
-        bkgrnd_bp_sig = an_bp_signal[bkgrnd_sel]
-        bkgrnd_bp_sig_diff = np.diff(bkgrnd_bp_sig)
+    bkgrnd_sel = np.r_[0:contour_ss, contour_se:len(an_bp_signal)]
+    bkgrnd_bp_sig = an_bp_signal[bkgrnd_sel]
+    bkgrnd_bp_sig_diff = np.diff(bkgrnd_bp_sig)
 
-        # For the sake of peak detection and sinus correlation, the start and end times were extendedn by a 3 periods of the freq_centroid_Hz in hfo_spectral_analysis
-        # Now the start, end and duration are corrected by taking the first and last prominent peaks as start and end of the EOI
-        wdw_contours_df.at[idx,'start_ms'] = an_start_ms + 1000*(contour_ss/fs)
-        wdw_contours_df.at[idx,'end_ms'] = an_start_ms + 1000*(contour_se/fs)
-        wdw_contours_df.at[idx,'center_ms'] = np.mean([wdw_contours_df.at[idx,'start_ms'], wdw_contours_df.at[idx,'end_ms']])
-        wdw_contours_df.at[idx,'dur_ms'] = wdw_contours_df.at[idx,'end_ms']-wdw_contours_df.at[idx,'start_ms']
+    # For the sake of peak detection and sinus correlation, the start and end times were extendedn by a 3 periods of the freq_centroid_Hz in hfo_spectral_analysis
+    # Now the start, end and duration are corrected by taking the first and last prominent peaks as start and end of the EOI
+    wdw_contours_df.at[idx,'start_ms'] = an_start_ms + 1000*(contour_ss/fs)
+    wdw_contours_df.at[idx,'end_ms'] = an_start_ms + 1000*(contour_se/fs)
+    wdw_contours_df.at[idx,'center_ms'] = np.mean([wdw_contours_df.at[idx,'start_ms'], wdw_contours_df.at[idx,'end_ms']])
+    wdw_contours_df.at[idx,'dur_ms'] = wdw_contours_df.at[idx,'end_ms']-wdw_contours_df.at[idx,'start_ms']
 
-        #get_bp_features_time_cum += (time.time()-bp_feats_st)
 
-        # Get other features based on the time-frequency transform
-        #bp_other_st = time.time()
-        #other_spectral_feats = get_other_spectral_features(fs=fs, dcmwt_freqs=dcmwt_freqs, dcmwt_matrix=contour_dcmwt)
-        #get_other_spectral_features_time_cum += (time.time()-bp_other_st)
+    bp_ok = False
+    if save_spect_img:
+        sinusoidal_ok = bp_feats['max_hfo_sine_corr'] > 0.75
+        prom_peaks_freq_ok = np.abs((bp_feats['prom_peaks_avg_freq']-this_hfo_freq)/this_hfo_freq)<=0.2 and \
+                            bp_feats['prom_peaks_avg_freq'] >= this_hfo_min_freq and bp_feats['prom_peaks_avg_freq'] <= this_hfo_max_freq and \
+                            bp_feats['prom_peaks_avg_freq'] <= fs/3
+        prom_peaks_freq_stddev_ok = bp_feats['prom_peaks_freqs_stddev'] <= (this_hfo_max_freq-this_hfo_min_freq) #np.max(np.diff((this_hfo_min_freq, this_hfo_freq, this_hfo_max_freq)))
+        prom_peaks_amplitude_ok = bp_feats['prom_peaks_avg_amplitude_stability'] >= 0.2
+        prom_peaks_stab_ok = bp_feats['prom_peaks_avg_amplitude_stability'] > 0.4
+        nr_prom_peaks_ok = bp_feats['prom_peaks_nr']>=4
+        prom_peaks_ok = prom_peaks_freq_ok and prom_peaks_freq_stddev_ok and prom_peaks_amplitude_ok and prom_peaks_stab_ok and nr_prom_peaks_ok
 
-        bp_ok = False
-        if save_spect_img:
-            sinusoidal_ok = bp_feats['max_hfo_sine_corr'] > 0.75
-            prom_peaks_freq_ok = np.abs((bp_feats['prom_peaks_avg_freq']-this_hfo_freq)/this_hfo_freq)<=0.2 and \
-                                bp_feats['prom_peaks_avg_freq'] >= this_hfo_min_freq and bp_feats['prom_peaks_avg_freq'] <= this_hfo_max_freq and \
-                                bp_feats['prom_peaks_avg_freq'] <= fs/3
-            prom_peaks_freq_stddev_ok = bp_feats['prom_peaks_freqs_stddev'] <= (this_hfo_max_freq-this_hfo_min_freq) #np.max(np.diff((this_hfo_min_freq, this_hfo_freq, this_hfo_max_freq)))
-            prom_peaks_amplitude_ok = bp_feats['prom_peaks_avg_amplitude_stability'] >= 0.2
-            prom_peaks_stab_ok = bp_feats['prom_peaks_avg_amplitude_stability'] > 0.4
-            nr_prom_peaks_ok = bp_feats['prom_peaks_nr']>=4
-            prom_peaks_ok = prom_peaks_freq_ok and prom_peaks_freq_stddev_ok and prom_peaks_amplitude_ok and prom_peaks_stab_ok and nr_prom_peaks_ok
+        all_relevant_peaks_freq_ok = bp_feats['all_relevant_peaks_avg_freq'] <= bp_feats['prom_peaks_avg_freq']*2.5 and bp_feats['all_relevant_peaks_avg_freq'] <= fs/3
+        nr_relevant_peaks_ok = bp_feats['all_relevant_peaks_nr'] <= 2*bp_feats['prom_peaks_nr']-1
+        relevant_peaks_ok = all_relevant_peaks_freq_ok #all_relevant_peaks_freq_ok and nr_relevant_peaks_ok
+        
+        bp_ok = sinusoidal_ok and prom_peaks_ok and relevant_peaks_ok
 
-            all_relevant_peaks_freq_ok = bp_feats['all_relevant_peaks_avg_freq'] <= bp_feats['prom_peaks_avg_freq']*2.5 and bp_feats['all_relevant_peaks_avg_freq'] <= fs/3
-            nr_relevant_peaks_ok = bp_feats['all_relevant_peaks_nr'] <= 2*bp_feats['prom_peaks_nr']-1
-            relevant_peaks_ok = all_relevant_peaks_freq_ok #all_relevant_peaks_freq_ok and nr_relevant_peaks_ok
-            
-            bp_ok = sinusoidal_ok and prom_peaks_ok and relevant_peaks_ok
-
-            bp_ok = wdw_contours_df.at[idx,'hvr'] > 10 and wdw_contours_df.at[idx,'circularity'] > 30 and \
-                    bp_feats['prom_peaks_nr']>=4 and bp_feats['max_hfo_sine_corr']>0.80 and \
-                    (bp_feats['all_relevant_peaks_nr']-bp_feats['prom_peaks_nr'])<int(bp_feats['prom_peaks_nr']/2) and \
-                    bp_feats['prom_peaks_freqs_stddev']<=15 and bp_feats['prom_peaks_avg_amplitude_stability']>= 0.70
-            
-            inverted_bp_ok = np.abs(bp_feats['prom_peaks_nr']-inverted_bp_feats['prom_peaks_nr'])<=2
-            
-            bp_ok = bp_ok and inverted_bp_ok
-                    
-            # if bp_feats['max_hfo_sine_corr']>=0.99 and prom_peaks_freq_ok and bp_feats['prom_peaks_nr']>=3:
-            #     bp_ok = True
+        bp_ok = wdw_contours_df.at[idx,'hvr'] > 10 and wdw_contours_df.at[idx,'circularity'] > 30 and \
+                bp_feats['prom_peaks_nr']>=4 and bp_feats['max_hfo_sine_corr']>0.80 and \
+                (bp_feats['all_relevant_peaks_nr']-bp_feats['prom_peaks_nr'])<int(bp_feats['prom_peaks_nr']/2) and \
+                bp_feats['prom_peaks_freqs_stddev']<=15 and bp_feats['prom_peaks_avg_amplitude_stability']>= 0.70
+        
+        inverted_bp_ok = np.abs(bp_feats['prom_peaks_nr']-inverted_bp_feats['prom_peaks_nr'])<=2
+        
+        bp_ok = bp_ok and inverted_bp_ok
+                
+        # if bp_feats['max_hfo_sine_corr']>=0.99 and prom_peaks_freq_ok and bp_feats['prom_peaks_nr']>=3:
+        #     bp_ok = True
                     
         wdw_contours_df.at[idx,'bp_ok'] = bp_ok
         wdw_contours_df.at[idx,'visual_valid'] = obj_visual_valid
@@ -609,11 +632,6 @@ def hfo_spectro_bp_wdw_analysis(\
         wdw_contours_df.at[idx,'inverted_prom_peaks_avg_amplitude_stability'] = inverted_bp_feats['prom_peaks_avg_amplitude_stability']
         wdw_contours_df.at[idx,'inverted_prom_peaks_prominence_stability'] = inverted_bp_feats['prom_peaks_prominence_stability']
 
-        # wdw_contours_df.at[idx,'TF_Complexity'] = other_spectral_feats['TF_Complexity']
-        # wdw_contours_df.at[idx,'NrSpectrumPeaks'] = other_spectral_feats['NrSpectrumPeaks']
-        # wdw_contours_df.at[idx,'SumFreqPeakWidths'] = other_spectral_feats['SumFreqPeakWidths']
-        # wdw_contours_df.at[idx,'NI'] = other_spectral_feats['NI']
-
         if bp_ok:
             bp_ok_present = True
 
@@ -638,14 +656,6 @@ def hfo_spectro_bp_wdw_analysis(\
             peak_corrected_contour_time_ls.append(peak_corrected_contour_time)
         pass
 
-    #print(f"get_bp_features total_time={get_bp_features_time_cum}")
-    #print(f"get_other_spectral_features total_time={get_other_spectral_features_time_cum}")
-    #print(f"hfo_bp_analysis total_time={time.time()-bp_loop_st}")
-
-    #Test_DLP
-    #save_spect_img = tp_cnt>0 or fp_cnt>0 or fn_cnt > 0
-    # Draw contours on band-passed signal
-    # = save_spect_img and (tp_cnt>0 or fn_cnt > 0 or bp_ok_present)
     if save_spect_img and nr_wdw_objects>0:
         start_time = time.time()
         # creating grid for subplots
