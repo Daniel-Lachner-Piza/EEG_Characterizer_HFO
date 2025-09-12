@@ -52,7 +52,7 @@ This tool provides automated detection and characterization of High-Frequency Os
 
 ## Methods
 
-The XGBoost-based HFO detector was trained, validated and tested using a 10 patient Scalp EEG dataset coming from the Alberta Children's Hospital. Each EEG was recorded during N2 sleep and had an approximate duration of 10 minutes. The reference HFO in this Dataset were visually marked by Dr. Margarita Maltseva.
+The XGBoost-based HFO detector was trained, validated and tested using a 11 patient Scalp EEG dataset coming from the Alberta Children's Hospital. Each EEG was recorded during N2 sleep and had an approximate duration of 10 minutes. The reference HFO in this Dataset were visually marked by Dr. Margarita Maltseva.
 The events fed to the XGBoost classifier consisted of contours on the Wavelet based Spectrogram. These contours were detected in the following way:
 - Apply Morlet CWT to the band-passed signal (80-500 Hz)
 - Obtain the real part of the CWT and map it to RGB colors using matplotlib's [jet colormap](https://matplotlib.org/stable/users/explain/colors/colormaps.html)
