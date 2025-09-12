@@ -8,39 +8,63 @@
 ## Table of Contents
 
 - [Overview](#overview)
-- [Performance Metrics](#performance-metrics)
-  - [Training Performance](#training-performance)
-  - [Validation Performance](#validation-performance)
-  - [Test Performance](#test-performance)
-  - [Performance Summary](#performance-summary)
 - [Features](#features)
+- [Methods](#methods)
+- [Performance Metrics](#performance-metrics)
+  - [AUC-PR Performance](#auc-pr-performance)
+  - [Kappa Performance](#kappa-performance)
+  - [Precision Performance](#precision-performance)
+  - [Sensitivity Performance](#sensitivity-performance)
+  - [Specificity Performance](#specificity-performance)
+  - [Performance Summary](#performance-summary)
 - [Installation](#installation)
   - [Environment Setup](#environment-setup)
+    - [1. Install uv from Astral](#1-install-uv-from-astral)
+    - [2. Clone the Repository](#2-clone-the-repository)
+    - [3. Install Dependencies](#3-install-dependencies)
+    - [4. Copy files for classifier model](#4-copy-files-for-classifier-model)
+    - [Optional: Activate the Environment](#optional-activate-the-environment)
 - [Usage](#usage)
   - [Quick Start](#quick-start)
   - [Command Line Arguments](#command-line-arguments)
   - [Example Usage](#example-usage)
-- [Development](#development)
-  - [MLflow Integration](#mlflow-integration)
-- [Data Management](#data-management)
-  - [Data Transfer to HPC](#data-transfer-to-hpc)
-  - [File Management Commands](#file-management-commands)
 - [HPC Cluster Usage](#hpc-cluster-usage)
   - [Connecting to ARC](#connecting-to-arc)
   - [Job Submission](#job-submission)
+    - [1. Interactive jobs](#1-interactive-jobs)
+    - [2. Batch jobs](#2-batch-jobs)
   - [Job Monitoring](#job-monitoring)
   - [Job Management](#job-management)
 - [Project Structure](#project-structure)
 
 ## Overview
 
-This tool provides automated detection and characterization of High-Frequency Oscillations (HFOs) in EEG data using spectral analysis. It supports various EEG formats and montage configurations for comprehensive neurophysiological analysis.
+This tool provides automated detection and characterization of High-Frequency Oscillations (HFOs) in EEG data using spectral analysis. The montage generation for both Intracranial and Scalp EEG is done automatically and can be configured through the input arguments. It supports various EEG formats thanks to wrapper functions of [MNE Python](https://github.com/mne-tools/mne-python) readers.
 
-HFO_Detection_Explanation.png
+## Features
+
+- **Multi-format support**: EDF, BrainVision, and other common EEG formats
+- **Flexible montage options**: Scalp bipolar (sb), scalp referential (sr), intracranial bipolar (ib), intracranial referential (ir)
+- **Spectral analysis**: Advanced HFO detection using time-frequency analysis
+- **Machine learning classification**: XGBoost-based HFO classification
+- **Power line noise filtering**: Configurable notch filtering for different regions
+- **Batch processing**: Process multiple files and datasets efficiently
+
+## Methods
+
+The XGBoost-based HFO detector was trained, validated and tested using a 10 patient Scalp EEG dataset coming from the Alberta Children's Hospital. Each EEG was recorded during N2 sleep and had an approximate duration of 10 minutes. The reference HFO in this Dataset were visually marked by Dr. Margarita Maltseva.
+The events fed to the XGBoost classifier consisted of contours on the Wavelet based Spectrogram. These contours were detected in the following way:
+- Apply Morlet CWT to the band-passed signal (80-500 Hz)
+- Obtain the real part of the CWT and map it to RGB colors using matplotlib's [jet colormap](https://matplotlib.org/stable/users/explain/colors/colormaps.html)
+- Segment the spectrogram by applying K-Means clustering to the RGB values
+- Binarize the segmented image. The threshold for binarization was determined by the cluster containing the highest red value in its centroid.
+- Once the image was binarized, contour objects were delimited using the [Topological structural analysis of digitized binary images by border following](https://www.sciencedirect.com/science/article/abs/pii/0734189X85900167) algorithm*.
+- The horizontal and vertical limits of the contour objects provided time and frequency limits to calculate the [engineered features](docs/Engineered_Features_Description.md)
+
+*\*Satoshi Suzuki and others. Topological structural analysis of digitized binary images by border following. Computer Vision, Graphics, and Image Processing, 30(1):32–46, 1985.*
 
 ## Performance Metrics
-
-Our XGBoost-based HFO detector demonstrates excellent performance across training, validation, and test datasets:
+ The data was partitioned as follows: 50% Training-set, 30% Validation-set, 20% Test-set
 
 ### AUC-PR Performance
 ```mermaid
@@ -112,16 +136,9 @@ The model shows very good generalization:
 - **Good Sensitivity** (~87%): Effective HFO detection
 - **High Specificity** (~93%): Accurate rejection of non-HFO events
 - **Strong Kappa** (~90%): Excellent agreement beyond chance
+---
 
-## Features
-
-- **Multi-format support**: EDF, BrainVision, and other common EEG formats
-- **Flexible montage options**: Scalp bipolar (sb), scalp referential (sr), intracranial bipolar (ib), intracranial referential (ir)
-- **Spectral analysis**: Advanced HFO detection using time-frequency analysis
-- **Machine learning classification**: XGBoost-based HFO classification
-- **Power line noise filtering**: Configurable notch filtering for different regions
-- **Batch processing**: Process multiple files and datasets efficiently
-- **MLflow integration**: Experiment tracking and model management
+<br><br><br>
 
 ## Installation
 
@@ -184,39 +201,55 @@ cd ~/Projects/EEG_Characterizer_HFO
 # Activate virtual environment
 source .venv/bin/activate
 
-# Run with basic parameters
-python run_eeg_characterization.py --name MyAnalysis --inpath /path/to/eeg/data --outpath /path/to/output --format edf --montage sb --plf 60
+# Basic example with minimal parameters
+python run_eeg_hfo_characterize_detect.py --dataset_name MyAnalysis --input_folder /path/to/eeg/data --output_folder /path/to/output --montage_type sb
+
+# Comprehensive example with all possible parameters
+python run_eeg_hfo_characterize_detect.py \
+    --dataset_name "ComprehensiveHFOAnalysis_2025" \
+    --input_folder "/path/to/eeg/data" \
+    --output_folder "/path/to/output/results" \
+    --eeg_format "edf" \
+    --montage_type "ib" \
+    --montage_channels "F3-C3,C3-P3,F4-C4,C4-P4,Fp1-F3,Fp2-F4" \
+    --rm_vchann "yes" \
+    --power_line_freq 60 \
+    --start_sec 30.0 \
+    --end_sec 600.0 \
+    --wdw_step_s 0.05 \
+    --force_characterization "no" \
+    --force_hfo_detection "yes" \
+    --n_jobs 8 \
+    --verbose "yes"
 ```
 
-#### ***The detector will batch process all the files in the --inpath directory that have the specified --format extension.***
+#### ***The detector will batch process all the files in the --input_folder directory that have the specified --eeg_format extension.***
 
 ### Command Line Arguments
 
-- `--name`: Analysis name/identifier
-- `--inpath`: Path to input EEG data directory
-- `--outpath`: Path to output directory
-- `--format`: EEG file format (edf, bv, etc.)
-- `--montage`: Montage type (sb, sr, ib, ir)
-- `--plf`: Power line frequency for notch filtering (50 or 60 Hz, anything else will deactivate notch filters)
+#### Required Arguments
+- `--dataset_name`: Analysis name/identifier
+- `--input_folder`: Path to input EEG data directory
+- `--output_folder`: Path to output directory
+- `--montage_type`: Montage type (ib=intracranial bipolar, ir=intracranial referential, sb=scalp bipolar, sr=scalp referential)
 
-### Example Usage
+#### Optional Arguments
+- `--eeg_format`: EEG file format (edf, dat, vhdr) [default: edf]
+- `--montage_channels`: Comma-separated specific channels to analyze (e.g., "F3-C3,C3-P3") [default: all channels]
+- `--rm_vchann`: Remove Natus virtual channels (yes/no) [default: yes]
+- `--power_line_freq`: Power line frequency for notch filtering (0=disabled, 50, 60) [default: 60]
+- `--start_sec`: Analysis start time in seconds [default: 0]
+- `--end_sec`: Analysis end time in seconds (-1=full length) [default: -1]
+- `--wdw_step_s`: Window step size in seconds [default: 0.1]
+- `--force_characterization`: Force recalculation of features (yes/no) [default: no]
+- `--force_hfo_detection`: Force HFO detection (yes/no) [default: yes]
+- `--n_jobs`: Number of parallel jobs (-1=all CPU cores) [default: -1]
+- `--verbose`: Enable verbose output (yes/no) [default: yes]
 
-```bash
-name=Test_DLP
-inpath=/home/dlp/Documents/Development/Data/Physio_EEG_Data/
-outpath=/home/dlp/Documents/Development/Data/Test-DLP-Output/
-fmt=edf
-montage=sb
-plf=60
+A more detailed description of the inout arguments can be found [here](docs/run_eeg_hfo_characterize_detect_usage.md)
+---
 
-python run_eeg_characterization.py \
-  --name $name \
-  --inpath $inpath \
-  --outpath $outpath \
-  --format $fmt \
-  --montage $montage \
-  --plf $plf
-```
+<br><br><br>
 
 ## HPC Cluster Usage
 
@@ -415,6 +448,53 @@ This command provides information about:
 - Memory usage
 - Job runtime
 - Resource utilization statistics
+---
+
+<br><br><br>
+
+## Troubleshooting
+
+### Common Issues
+
+**1. Sampling Rate Error**
+```
+Error: Sampling Rate is XXX Hz, which is under 1000 Hz!
+```
+*Solution*: HFO analysis requires sampling rates > 1000 Hz. Use higher sampling rate recordings.
+
+**2. No Files Found**
+```
+Warning: No edf files found in /path/to/folder
+```
+*Solution*: Check file format parameter matches actual files, verify folder path.
+
+**3. Memory Issues**
+```
+Error: Out of memory during processing
+```
+*Solution*: Reduce `n_jobs` parameter or process fewer files simultaneously.
+
+**4. Channel Configuration Error**
+```
+Error: Invalid montage type
+```
+*Solution*: Use valid montage types: 'ib', 'ir', 'sb', 'sr'.
+
+### Debugging Tips
+- Use `--verbose "yes"` for detailed output
+- Check log files in the `logs/` directory
+- Verify file permissions for input/output directories
+
+## Performance Considerations
+
+### Optimization Strategies
+- **CPU cores**: Use `-1` for automatic detection, or specify optimal number
+- **Window step size**: Larger steps = faster processing, less overlap
+- **Time ranges**: Process specific time segments for faster analysis
+
+---
+
+<br><br><br>
 
 ## Project Structure
 

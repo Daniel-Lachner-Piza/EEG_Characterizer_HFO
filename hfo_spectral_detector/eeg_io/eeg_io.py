@@ -113,7 +113,8 @@ class EEG_IO:
         """
         from pathlib import Path
         filepath = Path(eeg_filepath)
-        file_extension = filepath.suffixes[0]
+        file_extension = filepath.suffixes[0].lower()
+        eeg_hdr = None
         if file_extension=='.lay':
             eeg_hdr = mne.io.read_raw_persyst(eeg_filepath, verbose='ERROR')
         elif file_extension=='.edf':

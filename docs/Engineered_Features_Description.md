@@ -1,6 +1,6 @@
 # Engineered Features Description - EEG HFO Characterization Module
 
-This document provides a comprehensive description of the engineered features calculated by the HFO (High-Frequency Oscillation) characterization module. The module performs temporal overlap analysis between ELPI (Event Localization and Parametrization Interface) events and HFO contours, transferring detailed spectral and temporal features from the best-matching HFO contours to the ELPI events.
+This document provides a description of the engineered features calculated by the characterization module.
 
 ## Overview
 
@@ -144,44 +144,3 @@ The characterization process involves:
 - **`overlap_ratio < 0.3`**: Poor temporal matching - features may be unreliable
 - **`max_hfo_sine_corr < 0.3`**: Non-oscillatory pattern
 - **`EventBkgrndRatio_Power < 1.5`**: Low signal-to-noise ratio
-
-## Clinical and Research Applications
-
-### HFO Classification
-Primary features for machine learning models:
-- `max_hfo_sine_corr`
-- `EventBkgrndRatio_Power`
-- `nr_oscillations`
-- `prom_peaks_avg_freq`
-- `circularity`
-
-### Quality Assessment
-Features for event validation:
-- `overlap_ratio`
-- `bp_sig_std` vs `bkgrnd_sig_std`
-- `all_relevant_peaks_nr`
-
-### Morphological Analysis
-Features for studying oscillation patterns:
-- `hvr`
-- `area`
-- `prom_peaks_nr`
-- Peak frequency distributions
-
-## Implementation Notes
-
-- **Bandpass Filtering**: Applied in the HFO frequency range (typically 80-500 Hz)
-- **Background Estimation**: Calculated from signal segments adjacent to detected events
-- **Peak Detection**: Uses prominence-based thresholding to identify relevant oscillatory peaks
-- **Temporal Alignment**: Uses millisecond precision for event-contour matching
-- **Missing Values**: Features are set to `NaN` when no suitable HFO contour match is found
-
-## Usage in Analysis Pipelines
-
-1. **Preprocessing**: Ensure proper bandpass filtering and artifact removal
-2. **Feature Extraction**: Run characterization module on detected events
-3. **Quality Control**: Filter based on `overlap_ratio` and signal-to-background ratios
-4. **Analysis**: Use appropriate feature subsets for specific research questions
-5. **Validation**: Cross-reference with manual annotations when available
-
-This feature set provides a comprehensive characterization of HFO events suitable for both automated detection algorithms and detailed morphological analysis in clinical and research settings.

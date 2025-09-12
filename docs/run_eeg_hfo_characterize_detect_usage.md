@@ -37,7 +37,7 @@ The script performs the following main operations:
 ## Prerequisites
 
 - Python 3.8 or higher
-- Required Python packages (see `pyproject.toml`)
+- Required Python packages, see [pyproject.toml](../pyproject.toml)
 - EEG data in supported formats
 - Sufficient disk space for output files
 
