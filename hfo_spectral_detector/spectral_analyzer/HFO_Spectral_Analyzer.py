@@ -354,7 +354,7 @@ def hfo_spectral_analysis(
     
     # Step 5: Find and filter contours
     valid_contours = _find_and_filter_contours(binary_img)        
-    logger.info(f"Found {len(valid_contours)} valid contours")
+    #logger.info(f"Found {len(valid_contours)} valid contours")
     
     # Step 6: Extract features from each contour
     all_contour_features = []
@@ -372,7 +372,7 @@ def hfo_spectral_analysis(
     
     # Step 8: Convert results to DataFrame
     contours_df = pd.DataFrame(all_contour_features)        
-    logger.info(f"Analysis complete. Extracted features for {len(contours_df)} contours")
+    #logger.info(f"Analysis complete. Extracted features for {len(contours_df)} contours")
     
     return visualization_img, contours_df
 

@@ -508,10 +508,10 @@ def create_test_args():
     """Create test arguments for debugging mode."""
     class TestArgs:
         def __init__(self):
-            self.dataset_name = "PhysioTest_DLP"
+            self.dataset_name = "Overcomplete_Validated_Blobs_Physio_Patient_Anonymized"
             self.rm_vchann = "yes"
-            self.input_folder = "/home/dlp/Documents/Development/Data/Physio_EEG_Data/"
-            self.output_folder = "/home/dlp/Documents/Development/Data/Test-DLP-Output/"
+            self.input_folder = "/home/dlp/Documents/Development/Data/Overcomplete_Validated_Blobs_Physio_Patient_Anonymized"
+            self.output_folder = "/home/dlp/Documents/Development/Data/HFO_Output/"
             self.eeg_format = "edf"
             self.montage_type = "sb"
             self.montage_channels = "" #"F3-C3,C3-P3,F4-C4,C4-P4"
@@ -519,10 +519,10 @@ def create_test_args():
             self.force_characterization = "yes"
             self.force_hfo_detection = "yes"
             self.start_sec = 0.0
-            self.end_sec = 120.0
-            self.wdw_step_s = 0.1
-            self.n_jobs = -1
-            self.verbose = "no"
+            self.end_sec = 60
+            self.wdw_step_s = 1
+            self.n_jobs = 1
+            self.verbose = "yes"
     
     return TestArgs()
 
