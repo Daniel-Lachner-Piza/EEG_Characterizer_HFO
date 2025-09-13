@@ -1,9 +1,7 @@
 import numpy as np
 from collections import defaultdict
 from scipy.signal import find_peaks, peak_prominences, correlate
-
-def scale_array(arr):
-    return (arr-min(arr)) / (np.max(arr)-np.min(arr))
+from sklearn.preprocessing import minmax_scale
 
 def get_sinusoidal_correlation(fs, bp_signal, hfo_freqs):
     # find max correlation with sinusoidal signal
@@ -39,13 +37,13 @@ def get_sinusoidal_dotproduct(fs, bp_signal, hfo_freqs):
         #sine_freqs = np.arange(hfo_freqs[0], hfo_freqs[2],1)
         sine_freqs = np.round(np.linspace(hfo_freqs[0],hfo_freqs[2],10))
 
-    bp_signal = scale_array(bp_signal)
+    bp_signal = minmax_scale(bp_signal)
     for sine_freq in sine_freqs:
         ys = np.sin(2*np.pi*sine_freq*ts)
         sine_T_samples = int(np.ceil(fs/sine_freq)+1)
         for lag in np.arange(0, sine_T_samples, 2):
             ys_lag = ys[lag:lag+len(bp_signal)]
-            ys_lag = scale_array(ys_lag)
+            ys_lag = minmax_scale(ys_lag)
             max_dp = np.sum(ys_lag**2)
             res = np.dot(ys_lag, bp_signal)/max_dp
             if res > max_hfo_sine_corr:
