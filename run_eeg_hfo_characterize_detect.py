@@ -519,9 +519,9 @@ def create_test_args():
             self.force_characterization = "yes"
             self.force_hfo_detection = "yes"
             self.start_sec = 0.0
-            self.end_sec = 20.0
+            self.end_sec = -1
             self.wdw_step_s = 0.1
-            self.n_jobs = 1
+            self.n_jobs = -1
             self.verbose = "yes"
     
     return TestArgs()
