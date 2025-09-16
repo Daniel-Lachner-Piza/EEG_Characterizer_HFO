@@ -519,9 +519,9 @@ def create_test_args():
             self.force_characterization = "yes"
             self.force_hfo_detection = "yes"
             self.start_sec = 0.0
-            self.end_sec = 10
+            self.end_sec = 20.0
             self.wdw_step_s = 0.1
-            self.n_jobs = -1
+            self.n_jobs = 1
             self.verbose = "yes"
     
     return TestArgs()
@@ -546,7 +546,7 @@ def main() -> None:
 
         # Create configuration and validate
         with timing_context("Configuration setup", logger):
-            cfg = Characterization_Config(args)
+            cfg = Characterization_Config(args, test_mode=test_mode)
             data_extractor = InputDataExtractor(cfg)
             files_to_process = data_extractor.get_files_to_process()
 

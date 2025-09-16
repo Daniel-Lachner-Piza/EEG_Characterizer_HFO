@@ -18,14 +18,12 @@ from hfo_spectral_detector.dsp.signal_processing import (
 from hfo_spectral_detector.spectral_analyzer.feature_extraction import (
     FeatureExtractor, ContourFeatureProcessor, safe_memory_intensive_concatenation
 )
-from hfo_spectral_detector.spectral_analyzer.hfo_validation import (
-    HFOValidator, HFOClassifier, calculate_classification_metrics
-)
+from hfo_spectral_detector.spectral_analyzer.hfo_validation import HFOClassifier
 from hfo_spectral_detector.spectral_analyzer.visualization import (
     HFOVisualizer, setup_matplotlib_backend
 )
 from hfo_spectral_detector.spectral_analyzer.config import (
-    PipelineConfig, DefaultValues, AnalysisConstants
+    PipelineConfig
 )
 
 # Setup matplotlib backend for non-interactive plotting
@@ -381,7 +379,7 @@ def hfo_spectro_bp_wdw_analysis(
     # Perform computer vision analysis of the spectrogram
     fig_title = f"{mtg}--{np.min(an_time):.1f}-{np.max(an_time):.1f}s"
     cwt_range_Hz = (int(dcmwt_freqs[0]), int(dcmwt_freqs[-1]))
-    objects, wdw_contours_df = hfo_spectral_analysis(
+    visualization_img, wdw_contours_df = hfo_spectral_analysis(
         spect_bgr, 
         int(fs), 
         wdw_duration_ms=int(an_duration_ms), 
@@ -568,7 +566,7 @@ def hfo_spectro_bp_wdw_analysis(
                 an_time=an_time,
                 an_raw_signal=an_raw_signal,
                 an_bp_signal=an_bp_signal,
-                objects_image=objects,
+                objects_image=visualization_img,
                 dcmwt_freqs=dcmwt_freqs,
                 contours_df=wdw_contours_df,
                 fs=fs,

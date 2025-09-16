@@ -9,8 +9,7 @@ import numpy as np
 import pandas as pd
 import logging
 from pathlib import Path
-
-from hfo_spectral_detector.elpi.elpi_interface import write_elpi_file
+import scipy.io as sio
 
 logger = logging.getLogger(__name__)
 
@@ -224,3 +223,10 @@ class HFO_Characterizer:
         self._save_characterized_events(characterized_elpi_df, characterization_fpath)
         
         return characterized_elpi_df
+    
+
+    def write_elpi_file(self, annots_df, mat_fname):
+
+        # Watch out, sio.savemat adds blank spaces to the strings!
+        sio.savemat(mat_fname, annots_df.to_dict(orient='list'), oned_as='column')
+        pass
