@@ -388,6 +388,14 @@ sbatch hfo_job.sh
 
 ### Job Monitoring
 
+#### View All Your Jobs
+
+Check all jobs submitted by your user account:
+
+```bash
+squeue -u $USER
+```
+
 #### Check Job Status
 
 Monitor a specific job by its ID:
@@ -407,14 +415,6 @@ while sleep 2; do arc.job-info <job_id>; done
 Example with specific job ID:
 ```bash
 while sleep 2; do arc.job-info 35038925; done
-```
-
-#### View All Your Jobs
-
-Check all jobs submitted by your user account:
-
-```bash
-squeue -u $USER
 ```
 
 #### Job History

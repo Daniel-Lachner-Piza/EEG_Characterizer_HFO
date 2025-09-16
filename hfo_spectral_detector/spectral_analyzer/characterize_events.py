@@ -10,9 +10,9 @@ from typing import List, Optional
 from joblib import Parallel, delayed
 from sklearn.preprocessing import minmax_scale
 
-from hfo_spectral_detector.spectral_analyzer.HFO_Spectral_Analyzer import hfo_spectral_analysis
+from hfo_spectral_detector.spectral_analyzer.hfo_spectral_analyzer import hfo_spectral_analysis
 from hfo_spectral_detector.eeg_io.eeg_io import EEG_IO
-from hfo_spectral_detector.spectral_analyzer.signal_processing import (
+from hfo_spectral_detector.dsp.signal_processing import (
     SignalProcessor, create_spectrogram_image
 )
 from hfo_spectral_detector.spectral_analyzer.feature_extraction import (

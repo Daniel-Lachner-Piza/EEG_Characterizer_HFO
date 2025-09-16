@@ -8,9 +8,6 @@ import json
 import logging
 from pathlib import Path
 
-from hfo_spectral_detector.elpi.elpi_interface import load_elpi_file, write_elpi_file, get_agreement_between_elpi_files
-from hfo_spectral_detector.studies_info.studies_info import StudiesInfo
-from hfo_spectral_detector.eeg_io.eeg_io import EEG_IO
 from hfo_spectral_detector.prediction.elpi_events_characterizer import HFO_Characterizer
 
 from xgboost import XGBClassifier

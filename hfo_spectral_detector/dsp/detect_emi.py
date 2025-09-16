@@ -8,7 +8,7 @@ from scipy.signal import firwin
 from scipy.ndimage import convolve1d
 
 from silx.math.colormap import apply_colormap
-from hfo_spectral_detector.spectral_analyzer.HFO_Spectral_Analyzer import hfo_spectral_analysis
+from hfo_spectral_detector.spectral_analyzer.hfo_spectral_analyzer import hfo_spectral_analysis
 from hfo_spectral_detector.dsp.cwt import dcmwt
 
 def detect_emi_presence(mtg_eeg_data: dict):
