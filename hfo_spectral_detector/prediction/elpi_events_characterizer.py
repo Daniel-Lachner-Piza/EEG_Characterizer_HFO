@@ -169,7 +169,7 @@ class HFO_Characterizer:
             RuntimeError: If saving fails
         """
         try:
-            write_elpi_file(characterized_df, characterization_fpath)
+            self.write_elpi_file(characterized_df, characterization_fpath)
             print(f"Saved characterized ELPI events to {characterization_fpath}")
             logger.info(f"Saved characterized ELPI events to {characterization_fpath}")
         except Exception as e:

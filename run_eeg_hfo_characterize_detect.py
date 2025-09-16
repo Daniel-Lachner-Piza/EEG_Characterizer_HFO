@@ -516,7 +516,7 @@ def create_test_args():
             self.montage_type = "sb"
             self.montage_channels = "" #"F3-C3,C3-P3,F4-C4,C4-P4"
             self.power_line_freq = 60
-            self.force_characterization = "yes"
+            self.force_characterization = "no"
             self.force_hfo_detection = "yes"
             self.start_sec = 0.0
             self.end_sec = -1
