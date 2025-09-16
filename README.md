@@ -515,3 +515,13 @@ EEG_Characterizer_HFO/
 ├── pyproject.toml              # Project configuration
 └── README.md                   # This file
 ```
+
+---
+
+## Repository Statistics
+
+![GitHub clones](https://img.shields.io/badge/dynamic/json?color=success&label=clones&query=count&url=https://api.github.com/repos/Daniel-Lachner-Piza/EEG_Characterizer_HFO/traffic/clones&logo=github)
+![GitHub views](https://img.shields.io/badge/dynamic/json?color=success&label=views&query=count&url=https://api.github.com/repos/Daniel-Lachner-Piza/EEG_Characterizer_HFO/traffic/views&logo=github)
+![GitHub downloads](https://img.shields.io/github/downloads/Daniel-Lachner-Piza/EEG_Characterizer_HFO/total?color=success&logo=github)
+
+
