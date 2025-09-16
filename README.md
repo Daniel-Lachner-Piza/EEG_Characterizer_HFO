@@ -520,8 +520,11 @@ EEG_Characterizer_HFO/
 
 ## Repository Statistics
 
-![GitHub clones](https://img.shields.io/badge/dynamic/json?color=success&label=clones&query=count&url=https://api.github.com/repos/Daniel-Lachner-Piza/EEG_Characterizer_HFO/traffic/clones&logo=github)
-![GitHub views](https://img.shields.io/badge/dynamic/json?color=success&label=views&query=count&url=https://api.github.com/repos/Daniel-Lachner-Piza/EEG_Characterizer_HFO/traffic/views&logo=github)
-![GitHub downloads](https://img.shields.io/github/downloads/Daniel-Lachner-Piza/EEG_Characterizer_HFO/total?color=success&logo=github)
 
-
+![GitHub all releases](https://img.shields.io/github/downloads/Daniel-Lachner-Piza/EEG_Characterizer_HFO/total?color=success&logo=github&label=total%20downloads)
+![GitHub latest release](https://img.shields.io/github/downloads/Daniel-Lachner-Piza/EEG_Characterizer_HFO/latest/total?color=blue&logo=github&label=latest%20release%20downloads)
+![GitHub repo size](https://img.shields.io/github/repo-size/Daniel-Lachner-Piza/EEG_Characterizer_HFO?color=orange)
+![GitHub clone count](https://img.shields.io/badge/dynamic/json?color=green&label=clones%20(last%2014%20days)&query=count&url=https://github-clone-count-badge.herokuapp.com/Daniel-Lachner-Piza/EEG_Characterizer_HFO&logo=github)
+![GitHub stars](https://img.shields.io/github/stars/Daniel-Lachner-Piza/EEG_Characterizer_HFO?style=social)
+![GitHub forks](https://img.shields.io/github/forks/Daniel-Lachner-Piza/EEG_Characterizer_HFO?style=social)
+![GitHub watchers](https://img.shields.io/github/watchers/Daniel-Lachner-Piza/EEG_Characterizer_HFO?style=social)
