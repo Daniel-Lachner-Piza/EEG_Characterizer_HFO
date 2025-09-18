@@ -153,9 +153,11 @@ cd ~/tmp
 curl -LsSf https://astral.sh/uv/install.sh | sh
 cd ~
 ```
+Now close the terminal and restart a new connection, this is needed for the OS to recognite the uv installation.
 
 #### 2. Clone the Repository
 ```bash
+cd ~
 mkdir ~/Projects
 cd ~/Projects
 git clone https://github.com/Daniel-Lachner-Piza/EEG_Characterizer_HFO.git
