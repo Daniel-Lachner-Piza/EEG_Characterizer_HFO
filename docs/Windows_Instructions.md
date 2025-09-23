@@ -19,6 +19,7 @@ https://drive.google.com/drive/folders/1yUeMmSEcIxKHiqPuXfkrhusDih5uNM5g
 .\.venv\Scripts\activate
 
 ### 2. Run the detector:
+```bash
 $dataset_name = "Alex_Test_Run"
 $input_folder = "E:/HFO_Detector/EEG_Data"
 $output_folder = "E:/HFO_Detector/HFO_Detector_Output/"
@@ -35,3 +36,4 @@ $n_jobs = -1
 
 python run_eeg_hfo_characterize_detect.py --dataset_name "$dataset_name" --input_folder "$input_folder" --output_folder "$output_folder" --eeg_format "$eeg_format" --montage_type "$montage_type" --montage_channels $montage_channels --rm_vchann "yes" --power_line_freq "$power_line_freq" --start_sec $start_sec  --end_sec $end_sec --wdw_step_s $wdw_step_s --force_characterization "$force_characterization" --force_hfo_detection "$force_hfo_detection" --n_jobs $n_jobs --verbose "yes"
 
+```
