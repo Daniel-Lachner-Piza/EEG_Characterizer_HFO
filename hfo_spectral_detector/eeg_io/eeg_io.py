@@ -118,9 +118,18 @@ class EEG_IO:
         if file_extension=='.lay':
             eeg_hdr = mne.io.read_raw_persyst(eeg_filepath, verbose='ERROR')
         elif file_extension=='.edf':
-            eeg_hdr = mne.io.read_raw_edf(eeg_filepath, verbose='ERROR')
+            try:
+                eeg_hdr = mne.io.read_raw_edf(eeg_filepath, verbose='ERROR')
+            except Exception as e:
+                print(f"Error reading EDF file with default encoding: {e}")
+                print("Trying with 'latin1' encoding...")
+                eeg_hdr = mne.io.read_raw_edf(eeg_filepath, verbose='ERROR', encoding='latin1')
         elif file_extension=='.vhdr':
             eeg_hdr = mne.io.read_raw_brainvision(eeg_filepath, verbose='ERROR')
+
+        if eeg_hdr is None:
+            raise ValueError(f"Unsupported file format: {file_extension}")
+        
         return eeg_hdr
 
     
@@ -137,6 +146,7 @@ class EEG_IO:
         for chi, ch_name in enumerate(ch_names):
             # Clean channel names from empty spaces and the '-Ref string'
             ch_name = ch_name.lstrip(" ").replace('-Ref', '')
+            ch_name = ch_name.lstrip(" ").replace('EEG ', '')
 
             # Clean channel names from leading zeros'
             alpha_char_ls = [c for c in ch_name if c.isalpha()]
@@ -195,7 +205,8 @@ class EEG_IO:
 
         The function iterates through the channel names in the EEG header, checks if each channel is a valid Scalp Longitudinal Bipolar EEG channel, and appends the channel label and index to the respective lists. The channel labels are then cleaned using the `clean_channel_labels` method.
         """
-        ch_names = self.eeg_hdr.ch_names
+        
+        ch_names = self.clean_channel_labels(self.eeg_hdr.ch_names)
         ch_names_low = [chn.lower() for chn in ch_names]      
         mtg_labels_ls = []
         mtg_chs_indices_ls = []

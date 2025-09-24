@@ -16,7 +16,7 @@ from hfo_spectral_detector.eeg_io.eeg_io import EEG_IO
 from hfo_spectral_detector.prediction.predict_characterize_hfo import HFO_Detector
 
 # Module-level constants for better performance
-DEFAULT_SAMPLING_RATE_THRESHOLD = 1000
+DEFAULT_SAMPLING_RATE_THRESHOLD = 1000 # Hz
 DEFAULT_WINDOW_LENGTH_SECONDS = 1.0  # do not change this value, it is used in the HFO detector
 DEFAULT_SAVE_SPECT_IMAGE = False
 LOG_FORMAT = '%(asctime)s %(levelname)-8s %(message)s'
@@ -508,14 +508,14 @@ def create_test_args():
     """Create test arguments for debugging mode."""
     class TestArgs:
         def __init__(self):
-            self.dataset_name = "Overcomplete_Validated_Blobs_Physio_Patient_Anonymized"
+            self.dataset_name = "Alex_Bonn_Data"
             self.rm_vchann = "yes"
-            self.input_folder = "/home/dlp/Documents/Development/Data/Overcomplete_Validated_Blobs_Physio_Patient_Anonymized"
-            self.output_folder = "/home/dlp/Documents/Development/Data/HFO_Output/"
+            self.input_folder = "C:/Users/dalap/Documents/Postdoc/Alex_Data/"
+            self.output_folder = "C:/Users/dalap/Documents/Postdoc/Alex_Data/HFO_Output/"
             self.eeg_format = "edf"
             self.montage_type = "sb"
-            self.montage_channels = "" #"F3-C3,C3-P3,F4-C4,C4-P4"
-            self.power_line_freq = 60
+            self.montage_channels = " " #"F3-C3,C3-P3,F4-C4,C4-P4"
+            self.power_line_freq = 50
             self.force_characterization = "no"
             self.force_hfo_detection = "yes"
             self.start_sec = 0.0
