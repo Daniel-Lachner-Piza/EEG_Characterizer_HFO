@@ -66,6 +66,7 @@ class SignalProcessor:
         logger.info(f"Applying Notch Filters: {notch_freqs} Hz")
         
         for nf in notch_freqs:
+            print(f"Notch filtering at {nf} Hz")
             # Create notch filter coefficients
             notch_coeffs = firwin(
                 ntaps, 
@@ -141,8 +142,13 @@ class SignalProcessor:
         # Detect and filter power line noise if requested
         if apply_notch and power_line_freq in [50, 60]:
             has_noise = self.detect_power_line_noise(signal, power_line_freq)
+            #has_noise = True  # Forcing notch application
+            noise_freqs = [power_line_freq * i for i in range(1, 10) if power_line_freq*i < self.fs/2]  # Harmonics from 1x to 9x
             if has_noise:
-                processed_signal = self.apply_notch_filter(processed_signal, [power_line_freq])
+                processed_signal = self.apply_notch_filter(signal=processed_signal, 
+                                                           notch_freqs=noise_freqs,
+                                                           notch_width=10,
+                                                           ntaps=3001)
                 notch_applied = True
         
         # Apply bandpass filter
